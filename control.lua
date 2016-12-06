@@ -1,6 +1,9 @@
-local conf = require "config"
-local tree_expansion_frequency = conf.tree_expansion_frequency
-local tree_decrease_start = conf.tree_decrease_start
+require "config"
+-- inherits: 
+-- tree_expansion_frequency
+-- enable_debug_window
+-- max_trees
+-- tree_decrease_start"
 
 local freq = 16
 local freq2 = freq ^ 2
@@ -252,15 +255,15 @@ function on_tick(event)
     if math.floor(game.tick + tree_expansion_frequency / 2) % tree_expansion_frequency == 0 then
         local m = math.floor(game.tick / tree_expansion_frequency)
 
-        -- As number of trees grows, the growth rate decreases, maxes at conf.max_trees.
+        -- As number of trees grows, the growth rate decreases, maxes at max_trees.
         local numTrees = count_trees()
-        if numTrees < conf.max_trees * tree_decrease_start or
-           numTrees < conf.max_trees * (tree_decrease_start + math.random() * (1 - tree_decrease_start)) 
+        if numTrees < max_trees * tree_decrease_start or
+           numTrees < max_trees * (tree_decrease_start + math.random() * (1 - tree_decrease_start)) 
         then
             grow_trees(m)
         end
 
-        if conf.enable_debug_window then
+        if enable_debug_window then
             game.players[1].gui.left.trees = game.players[1].gui.left.trees or
                                              new_trees_gui ()
             update_trees_gui (game.players[1].gui.left.trees,

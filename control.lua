@@ -59,21 +59,24 @@ local function eqany(a,b)
 	return false
 end
 
-local shuffle_src = {}
 
+local shuffle, shsrc = {}, {}
+--[[
+formerly raster-scan; nested loops are unnecessary
 for i = 1,freq do
 	for j = 1,freq do
 		shuffle_src[i * freq + j] = i * freq + j
-	end
+    end
+end
+--]]
+for i=1, freq2 do shsrc[i] = true end
+
+for i in pairs(shsrc) do -- pairs() return order stochastic/undefined; suitably random
+    table.insert(shuffle, i)
 end
 
-local shuffle = {}
+shsrc = nil
 
-while 0 < #shuffle_src do
-	local p = math.random(1,#shuffle_src)
-	table.insert(shuffle, shuffle_src[p])
-	table.remove(shuffle_src, p)
-end
 
 -- Playermap is a 2-D map that indicates approximate location of player owned
 -- entities. It is used for optimizing the algorithm to quickly determine proximity

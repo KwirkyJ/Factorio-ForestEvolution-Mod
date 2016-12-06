@@ -227,7 +227,7 @@ local function grow_trees(m)
         totalgen = totalgen + num
     end
 
-local function new_trees_gui ()
+local function init_trees_gui ()
     game.players[1].gui.left.add{type="frame", name="trees", caption="Trees", direction="vertical"}
     -- original_tree_count = game.surfaces[1].count_entities_filtered{area={{-10000,-10000},{10000,10000}},type="tree"}
     game.players[1].gui.left.trees.add{type="label",name="m"}
@@ -264,8 +264,9 @@ function on_tick(event)
         end
 
         if enable_debug_window then
-            game.players[1].gui.left.trees = game.players[1].gui.left.trees or
-                                             new_trees_gui ()
+            if not game.players[1].gui.left.trees then
+                init_trees_gui ()
+            end
             update_trees_gui (game.players[1].gui.left.trees,
                               m % #shuffle .. '/' .. #shuffle,
                               count_trees (),

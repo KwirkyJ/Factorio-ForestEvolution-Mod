@@ -46,9 +46,13 @@ local function fmod(a,m)
 end
 
 local function can_grow_on_tile (tile)
-    if not tile.valid then return false end
+    if not tile.valid then
+        return false
+    end
     for i=1, #tree_unfriendly_tile_names do
-        if tile.name == tree_unfriendly_tile_names[i] then return false end
+        if tile.name == tree_unfriendly_tile_names[i] then
+            return false
+        end
     end
     return true
 end

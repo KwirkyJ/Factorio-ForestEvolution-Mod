@@ -1,4 +1,8 @@
-require "config"
+local conf = require "config"
+local tree_expansion_frequency = conf.tree_expansion_frequency
+local max_trees = conf.max_trees
+local enable_debug_window = conf.enable_debug_window
+local tree_decrease_start = conf.tree_decrease_start
 
 local freq = 16
 local freq2 = freq ^ 2

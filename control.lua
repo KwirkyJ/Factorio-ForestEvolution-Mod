@@ -24,21 +24,33 @@ local tree_names = {
 	"tree-09-red"
 }
 
+local tree_unfriendly_tile_names = {
+    "out-of-map",
+    "deepwater",
+    "deepwater-green",
+    "water",
+    "water-green",
+    "grass",
+    "sand",
+    "sand-dark",
+    "stone-path",
+    "concrete",
+    "hazard-concrete-left",
+    "hazard-concrete-right",
+    "dirt",
+    "dirt-dark",
+}
+
 local function fmod(a,m)
 	return a - math.floor(a / m) * m
 end
 
-local function test_tile(surface,newpos,names)
-	tile = surface.get_tile(newpos[1],newpos[2])
-	if not tile.valid then
-		return false
-	end
-	for i = 1,#names do
-		if tile.name == names[i] then
-			return false
-		end
-	end
-	return true
+local function can_grow_on_tile (tile)
+    if not tile.valid then return false end
+    for i=1, #tree_unfriendly_tile_names do
+        if tile.name == tree_unfriendly_tile_names[i] then return false end
+    end
+    return true
 end
 
 local function eqany(a,b)
@@ -165,9 +177,7 @@ function on_tick(event)
 								local newarea = {{newpos[1] - 1, newpos[2] - 1}, {newpos[1] + 1, newpos[2] + 1}}
 								local newarea2 = {{newpos[1] - 2, newpos[2] - 2}, {newpos[1] + 2, newpos[2] + 2}}
 								if 0 == surface.count_entities_filtered{area = newarea, type = "tree"} and
-								test_tile(surface, newpos, {"out-of-map", "deepwater", "deepwater-green", "water",
-									"water-green", "grass", "sand", "sand-dark", "stone-path", "concrete", "hazard-concrete-left", "hazard-concrete-right",
-									"dirt", "dirt-dark"}) and
+                                can_grow_on_tile (surface.get_tile (newpos[1], newpos[2])) and
 								0 == surface.count_entities_filtered{area = newarea2, force = "player"} and
 								surface.can_place_entity{name = tree.name, position = newpos, force = tree.force} then
 									success = true

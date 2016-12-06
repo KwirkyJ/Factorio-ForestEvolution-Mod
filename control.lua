@@ -28,15 +28,6 @@ local function fmod(a,m)
 	return a - math.floor(a / m) * m
 end
 
-local function test_entity(surface,area,names)
-	for i = 1,#names do
-		if 0 ~= surface.count_entities_filtered{area = area, type = names[i]} then
-			return false
-		end
-	end
-	return true
-end
-
 local function test_tile(surface,newpos,names)
 	tile = surface.get_tile(newpos[1],newpos[2])
 	if not tile.valid then

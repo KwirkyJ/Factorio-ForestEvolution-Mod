@@ -1,7 +1,5 @@
 local conf = require "config"
 local tree_expansion_frequency = conf.tree_expansion_frequency
-local max_trees = conf.max_trees
-local enable_debug_window = conf.enable_debug_window
 local tree_decrease_start = conf.tree_decrease_start
 
 local freq = 16
@@ -120,6 +118,21 @@ local function update_player_map(m, surface)
 	end
 end
 
+-- Return [rows,active,visited] playermap chunks
+local function countPlayerMap()
+    local ret = {0,0,0}
+    for i,v in pairs(playermap) do
+        ret[1] = ret[1] + 1
+        for j,w in pairs(v) do
+            if m < w + freq2 then
+                ret[2] = ret[2] + 1
+            end
+            ret[3] = ret[3] + 1
+        end
+    end
+    return ret
+end
+
 -- LuaSurface.count_entities_filtered() is slow, LuaForce.get_entity_count()
 -- is much faster, but it needs entity name argument, not type. 
 -- So we must repeat it for all types of trees.
@@ -208,8 +221,23 @@ local function grow_trees(m)
 		totalgen = totalgen + num
 	end
 
-function on_tick(event)
+local function new_trees_gui ()
+    game.players[1].gui.left.add{type="frame", name="trees", caption="Trees", direction="vertical"}
+    -- original_tree_count = game.surfaces[1].count_entities_filtered{area={{-10000,-10000},{10000,10000}},type="tree"}
+    game.players[1].gui.left.trees.add{type="label",name="m"}
+    game.players[1].gui.left.trees.add{type="label",name="total"}
+    game.players[1].gui.left.trees.add{type="label",name="count"}
+    game.players[1].gui.left.trees.add{type="label",name="playermap"}
+end
 
+local function update_trees_gui (trees_gui, cycle_state, tree_count, generated, playermap_count)
+    trees_gui.m.caption = cycle_state
+    trees_gui.total.caption = "Total trees: " .. tree_count
+	trees_gui.count.caption = "Added trees: " .. generated
+    trees_gui.playermap.caption = "Playermap: " .. playermap_count[1] .. "/" .. playermap_count[2] .. "/" .. playermap_count[3]
+end
+
+function on_tick(event)
 	-- First, cache player map data by searching player owned entities.
 	if game.tick % tree_expansion_frequency == 0 then
 		local m = math.floor(game.tick / tree_expansion_frequency)
@@ -221,44 +249,21 @@ function on_tick(event)
 	if math.floor(game.tick + tree_expansion_frequency / 2) % tree_expansion_frequency == 0 then
 		local m = math.floor(game.tick / tree_expansion_frequency)
 
-		-- As number of trees grows, the growth rate decreases, maxes at max_trees.
+		-- As number of trees grows, the growth rate decreases, maxes at conf.max_trees.
 		local numTrees = count_trees()
-		if numTrees < max_trees * tree_decrease_start or
-			numTrees < max_trees * (tree_decrease_start + math.random() * (1 - tree_decrease_start)) then
+		if numTrees < conf.max_trees * tree_decrease_start or
+			numTrees < conf.max_trees * (tree_decrease_start + math.random() * (1 - tree_decrease_start)) then
 			grow_trees(m)
 		end
 
-		if enable_debug_window then
-
-			-- Return [rows,active,visited] playermap chunks
-			local function countPlayerMap()
-				local ret = {0,0,0}
-				for i,v in pairs(playermap) do
-					ret[1] = ret[1] + 1
-					for j,w in pairs(v) do
-						if m < w + freq2 then
-							ret[2] = ret[2] + 1
-						end
-						ret[3] = ret[3] + 1
-					end
-				end
-				return ret
-			end
-
-			if not game.players[1].gui.left.trees then
-				game.players[1].gui.left.add{type="frame", name="trees", caption="Trees", direction="vertical"}
-				-- original_tree_count = game.surfaces[1].count_entities_filtered{area={{-10000,-10000},{10000,10000}},type="tree"}
-				game.players[1].gui.left.trees.add{type="label",name="m",caption="Cycle: " .. m % #shuffle .. "/" .. #shuffle}
-				game.players[1].gui.left.trees.add{type="label",name="total",caption="Total trees: " .. count_trees()}
-				game.players[1].gui.left.trees.add{type="label",name="count",caption="Added trees: " .. totalgen}
-				game.players[1].gui.left.trees.add{type="label",name="playermap"}
-			else
-				game.players[1].gui.left.trees.m.caption = "Cycle: " .. m % #shuffle .. "/" .. #shuffle
-				game.players[1].gui.left.trees.total.caption = "Total trees: " .. count_trees()
-				game.players[1].gui.left.trees.count.caption = "Added trees: " .. totalgen
-			end
-			local cc = countPlayerMap()
-			game.players[1].gui.left.trees.playermap.caption = "Playermap: " .. cc[1] .. "/" .. cc[2] .. "/" .. cc[3]
+		if conf.enable_debug_window then
+            game.players[1].gui.left.trees = game.players[1].gui.left.trees or
+                                             new_trees_gui ()
+            update_trees_gui (game.players[1].gui.left.trees,
+                              m % #shuffle .. '/' .. #shuffle,
+                              count_trees (),
+                              totalgen,
+                              countPlayerMap ())
 		end
 	end
 end

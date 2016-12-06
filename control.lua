@@ -30,20 +30,20 @@ local tree_names = {
 }
 
 local tree_unfriendly_tile_names = {
-    ["out-of-map"] = true,
-    ["deepwater"] = true,
-    ["deepwater-green"] = true,
-    ["water"] = true,
-    ["water-green"] = true,
-    ["grass"] = true,
-    ["sand"] = true,
-    ["sand-dark"] = true,
-    ["stone-path"] = true,
-    ["concrete"] = true,
-    ["hazard-concrete-left"] = true,
-    ["hazard-concrete-right"] = true,
-    ["dirt"] = true,
-    ["dirt-dark"] = true,
+    "out-of-map",
+    "deepwater",
+    "deepwater-green",
+    "water",
+    "water-green",
+    "grass",
+    "sand",
+    "sand-dark",
+    "stone-path",
+    "concrete",
+    "hazard-concrete-left",
+    "hazard-concrete-right",
+    "dirt",
+    "dirt-dark",
 }
 
 local function fmod(a,m)
@@ -56,7 +56,7 @@ local function can_grow_on_tile (tile)
     end
     --for i=1, #tree_unfriendly_tile_names do
     --    if tile.name == tree_unfriendly_tile_names[i] then
-    for unfriendly in pairs (tree_unfriendly_tile_names) do
+    for _, unfriendly in pairs (tree_unfriendly_tile_names) do
         if tile.name == unfriendly then
             return false
         end

@@ -73,16 +73,17 @@ end
 
 local shuffle, shsrc = {}, {}
 --[[
-formerly raster-scan; nested loops are unnecessary
 for i = 1,freq do
     for j = 1,freq do
         shuffle_src[i * freq + j] = i * freq + j
     end
 end
 --]]
+-- formerly raster-scan above; nested loops are unnecessary
 for i=1, freq2 do shsrc[i] = true end
 
-for i in pairs(shsrc) do -- pairs() return order stochastic/undefined; suitably random
+for i in pairs(shsrc) do 
+    -- pairs() return order stochastic/undefined; thus suitably random
     table.insert(shuffle, i)
 end
 
@@ -90,10 +91,10 @@ shsrc = nil
 
 
 -- Playermap is a 2-D map that indicates approximate location of player owned
--- entities. It is used for optimizing the algorithm to quickly determine proximity
--- of the player's properties which would be of player's interest.
--- Because LuaSurface.count_entities_filtered() is slow for large area, we want
--- to call it as few times as possible.
+-- entities. It is used for optimizing the algorithm to quickly determine 
+-- proximity of the player's properties which would be of player's interest.
+-- Because LuaSurface.count_entities_filtered() is slow for large area, 
+-- we want to call it as few times as possible.
 -- This is similar in function as chunks, but playermap element is greater than
 -- chunks, because it's not good idea to make scripting languages like Lua
 -- calculating large set of data. Also we only need very rough estimation, so
@@ -118,7 +119,7 @@ local function update_player_map(m, surface)
     end
 end
 
--- Return [rows,active,visited] playermap chunks
+-- Return {rows, active, visited} playermap chunks
 local function countPlayerMap(m)
     local ret = {0,0,0}
     for i,v in pairs(playermap) do
@@ -133,9 +134,9 @@ local function countPlayerMap(m)
     return ret
 end
 
--- LuaSurface.count_entities_filtered() is slow, LuaForce.get_entity_count()
--- is much faster, but it needs entity name argument, not type. 
--- So we must repeat it for all types of trees.
+-- LuaSurface.count_entities_filtered() is slow.
+-- LuaForce.get_entity_count() is much faster, but it needs 
+-- entity name argument, not type so we must repeat it for all types of trees.
 local function count_trees()
     local c=0
     for i=1,#tree_names do
@@ -144,14 +145,16 @@ local function count_trees()
     return c
 end
 
--- Check if any of player's entity is in proximity of this chunk.
+--TODO: can probably be futher optimized? nest fors and ifs is messy anyway
 local function is_near_playermap (chunk, m)
     local px = math.floor(chunk.x / 4)
     local py = math.floor(chunk.y / 4)
     for y=-1,1 do
         if playermap[py + y] then
             for x=-1,1 do
-                if playermap[py + y][px + x] and m < playermap[py + y][px + x] + freq2 then
+                if playermap[py + y][px + x] and 
+                   m < playermap[py + y][px + x] + freq2 
+                then
                     return true
                 end
             end

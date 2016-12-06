@@ -6,7 +6,7 @@ local freq = 16
 local freq2 = freq ^ 2
 local totalgen = 0
 local chunksize = 32
-local original_tree_count = 0
+--local original_tree_count = 0
 
 local tree_names = {
 	"tree-01",
@@ -98,7 +98,7 @@ shsrc = nil
 -- chunks, because it's not good idea to make scripting languages like Lua
 -- calculating large set of data. Also we only need very rough estimation, so
 -- chunk granularity is too fine for us.
-local playermap_freq = 4
+--local playermap_freq = 4
 local playermap = {}
 
 local function update_player_map(m, surface)
@@ -119,7 +119,7 @@ local function update_player_map(m, surface)
 end
 
 -- Return [rows,active,visited] playermap chunks
-local function countPlayerMap()
+local function countPlayerMap(m)
     local ret = {0,0,0}
     for i,v in pairs(playermap) do
         ret[1] = ret[1] + 1
@@ -145,7 +145,7 @@ local function count_trees()
 end
 
 -- Check if any of player's entity is in proximity of this chunk.
-local function is_near_playermap (chunk)
+local function is_near_playermap (chunk, m)
     local px = math.floor(chunk.x / 4)
     local py = math.floor(chunk.y / 4)
     for y=-1,1 do
@@ -176,7 +176,7 @@ local function grow_trees(m)
 			-- interested nor has means to observe deep in the unknown region.
 			if fmod(chunk.x + mx, freq) == 0 and 
                fmod(chunk.y + my, freq) == 0 and
-               is_near_playermap (chunk) 
+               is_near_playermap (chunk, m) 
             then
 				local area = {{chunk.x * chunksize, chunk.y * chunksize}, {(chunk.x + 1) * chunksize, (chunk.y + 1) * chunksize}}
 				local c = surface.count_entities_filtered{area = area, type = "tree"}
@@ -263,7 +263,7 @@ function on_tick(event)
                               m % #shuffle .. '/' .. #shuffle,
                               count_trees (),
                               totalgen,
-                              countPlayerMap ())
+                              countPlayerMap (m))
 		end
 	end
 end

@@ -120,18 +120,34 @@ local function update_player_map(m, surface)
 	end
 end
 
-function on_tick(event)
-	-- LuaSurface.count_entities_filtered() is slow, LuaForce.get_entity_count() is much faster, but
-	-- it needs entity name argument, not type. So we must repeat it for all types of trees.
-	local function count_trees()
-		local c=0
-		for i=1,#tree_names do
-			c = c + game.forces.neutral.get_entity_count(tree_names[i])
-		end
-		return c
-	end
+-- LuaSurface.count_entities_filtered() is slow, LuaForce.get_entity_count()
+-- is much faster, but it needs entity name argument, not type. 
+-- So we must repeat it for all types of trees.
+local function count_trees()
+    local c=0
+    for i=1,#tree_names do
+        c = c + game.forces.neutral.get_entity_count(tree_names[i])
+    end
+    return c
+end
 
-	local function grow_trees(m)
+-- Check if any of player's entity is in proximity of this chunk.
+local function is_near_playermap (chunk)
+    local px = math.floor(chunk.x / 4)
+    local py = math.floor(chunk.y / 4)
+    for y=-1,1 do
+        if playermap[py + y] then
+            for x=-1,1 do
+                if playermap[py + y][px + x] and m < playermap[py + y][px + x] + freq2 then
+                    return true
+                end
+            end
+        end
+    end
+    return false
+end
+
+local function grow_trees(m)
 		local num = 0
 		local allnum = 0
 		local str = ""
@@ -143,26 +159,12 @@ function on_tick(event)
 		for chunk in surface.get_chunks() do
 			allnum = allnum + 1
 
-			-- Check if any of player's entity is in proximity of this chunk.
-			local function checkPlayerMap()
-				local px = math.floor(chunk.x / 4)
-				local py = math.floor(chunk.y / 4)
-				for y=-1,1 do
-					if playermap[py + y] then
-						for x=-1,1 do
-							if playermap[py + y][px + x] and m < playermap[py + y][px + x] + freq2 then
-								return true
-							end
-						end
-					end
-				end
-				return false
-			end
-
 			-- Grow trees on only the player's proximity since the player is not
 			-- interested nor has means to observe deep in the unknown region.
-			if fmod(chunk.x + mx, freq) == 0 and fmod(chunk.y + my, freq) == 0 and
-				checkPlayerMap() then
+			if fmod(chunk.x + mx, freq) == 0 and 
+               fmod(chunk.y + my, freq) == 0 and
+               is_near_playermap (chunk) 
+            then
 				local area = {{chunk.x * chunksize, chunk.y * chunksize}, {(chunk.x + 1) * chunksize, (chunk.y + 1) * chunksize}}
 				local c = surface.count_entities_filtered{area = area, type = "tree"}
 				totalc = totalc + c
@@ -205,6 +207,8 @@ function on_tick(event)
 		end
 		totalgen = totalgen + num
 	end
+
+function on_tick(event)
 
 	-- First, cache player map data by searching player owned entities.
 	if game.tick % tree_expansion_frequency == 0 then

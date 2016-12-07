@@ -1,10 +1,10 @@
 {
 	"name": "NaturalTreeExpansion",
-	"version": "0.1.0",
+	"version": "0.3.0",
 	"title": "Natural Tree Expansion",
-	"author": "msakuta",
-	"description": "Aliens reproduce, why trees don't?",
+	"author": "KwirkyJ",
+	"description": "Aliens reproduce, why don't trees?",
 	"homepage": "",
-	"factorio_version": "0.13",
-	"dependencies": ["base >= 0.13.0"]
+	"factorio_version": "0.14",
+	"dependencies": ["base >= 0.14.21"]
 }

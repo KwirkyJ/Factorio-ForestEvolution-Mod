@@ -3,12 +3,14 @@ require "config"
 -- tree_expansion_frequency
 -- enable_debug_window
 -- max_trees
+-- max_grown_per_tick
 -- tree_decrease_start"
 
 local freq = 16
 local freq2 = freq ^ 2
 local totalgen = 0
 local chunksize = 32
+local max_tick_chunk = 2
 --local original_tree_count = 0
 
 local tree_names = {
@@ -26,7 +28,15 @@ local tree_names = {
     "tree-08-red",
     "tree-09",
     "tree-09-brown",
-    "tree-09-red"
+    "tree-09-red",
+}
+
+local dead_tree_names = {
+    "dead-tree",
+    "dry-tree",
+    "dead-grey-trunk",
+    "dry-hairy-tree",
+    "dead-dry-hairy-tree",
 }
 
 local tree_unfriendly_tile_names = {
@@ -46,24 +56,15 @@ local tree_unfriendly_tile_names = {
     "dirt-dark",
 }
 
-local function fmod(a,m)
-    return a - math.floor(a / m) * m
-end
+-- =================
+-- === UTILITIES ===
+-- =================
 
-local function can_grow_on_tile (tile)
-    if not tile.valid then
-        return false
-    end
-    --for i=1, #tree_unfriendly_tile_names do
-    --    if tile.name == tree_unfriendly_tile_names[i] then
-    for _, unfriendly in pairs (tree_unfriendly_tile_names) do
-        if tile.name == unfriendly then
-            return false
-        end
-    end
-    return true
-end
+local fmod = math.fmod
 
+
+-- returns true if a is present in table b
+-- a == b[any]
 local function eqany(a,b)
     for i = 1,#b do
         if a == b[i] then
@@ -72,6 +73,9 @@ local function eqany(a,b)
     end
     return false
 end
+assert (eqany (3, {2,3,4}))
+assert (not eqany (1, {2,3,4}))
+
 
 
 local shuffle, shsrc = {}, {}
@@ -93,6 +97,23 @@ end
 shsrc = nil
 
 
+
+-- LuaSurface.count_entities_filtered() is slow.
+-- LuaForce.get_entity_count() is much faster, but it needs 
+-- entity name argument, not type so we must repeat it for all types of trees.
+local function count_trees (names)
+    local c=0
+    for i=1, #names do
+        c = c + game.forces.neutral.get_entity_count (names[i])
+    end
+    return c
+end
+
+-- =================
+-- === PLAYERMAP ===
+-- =================
+
+---[[
 -- Playermap is a 2-D map that indicates approximate location of player owned
 -- entities. It is used for optimizing the algorithm to quickly determine 
 -- proximity of the player's properties which would be of player's interest.
@@ -110,8 +131,10 @@ local function update_player_map(m, surface)
     local mx = shuffle[mm] % freq
     local my = math.floor(shuffle[mm] / freq)
     for chunk in surface.get_chunks() do
-        if fmod(chunk.x + mx, freq) == 0 and fmod(chunk.y + my, freq) == 0 and
-            0 < surface.count_entities_filtered{area = {{chunk.x * chunksize, chunk.y * chunksize}, {(chunk.x + 1) * chunksize, (chunk.y + 1) * chunksize}}, force = "player"} then
+        if fmod(chunk.x + mx, freq) == 0 and 
+           fmod(chunk.y + my, freq) == 0 and
+           0 < surface.count_entities_filtered{area = {{chunk.x * chunksize, chunk.y * chunksize}, {(chunk.x + 1) * chunksize, (chunk.y + 1) * chunksize}}, force = "player"} 
+        then
             local px = math.floor(chunk.x / 4)
             local py = math.floor(chunk.y / 4)
             if playermap[py] == nil then
@@ -121,7 +144,11 @@ local function update_player_map(m, surface)
         end
     end
 end
+--]]
 
+
+
+---[[
 -- Return {rows, active, visited} playermap chunks
 local function countPlayerMap(m)
     local ret = {0,0,0}
@@ -136,18 +163,9 @@ local function countPlayerMap(m)
     end
     return ret
 end
+--]]
 
--- LuaSurface.count_entities_filtered() is slow.
--- LuaForce.get_entity_count() is much faster, but it needs 
--- entity name argument, not type so we must repeat it for all types of trees.
-local function count_trees()
-    local c=0
-    for i=1,#tree_names do
-        c = c + game.forces.neutral.get_entity_count(tree_names[i])
-    end
-    return c
-end
-
+---[[
 --TODO: can probably be futher optimized? nest fors and ifs is messy anyway
 local function is_near_playermap (chunk, m)
     local px = math.floor(chunk.x / 4)
@@ -165,83 +183,133 @@ local function is_near_playermap (chunk, m)
     end
     return false
 end
+--]]
+
+local function get_trees_about_chunk (surface, chunk)
+    local area = {{chunk.x * chunksize, chunk.y * chunksize}, 
+                  {(chunk.x + 1) * chunksize, (chunk.y + 1) * chunksize}}
+    local c = surface.count_entities_filtered{area = area, type = "tree"}
+    if 0 < c then
+        return surface.find_entities_filtered{area = area, type = "tree"}
+    else
+        return {}
+    end
+end
+
+-- ===================
+-- === TREE GROWTH ===
+-- ===================
+
+local function can_grow_on_tile (tile)
+    if not tile.valid then
+        return false
+    end
+    --for i=1, #tree_unfriendly_tile_names do
+    --    if tile.name == tree_unfriendly_tile_names[i] then
+    for _, unfriendly in pairs (tree_unfriendly_tile_names) do
+        if tile.name == unfriendly then
+            return false
+        end
+    end
+    return true
+end
+
+local function try_add_tree (surface, tree)
+    if eqany (tree.name, dead_tree_names) then
+        return false
+    end
+    local x, y = tree.position.x + math.random (0, 5),
+                 tree.position.y + math.random (0, 5)
+    local newpos = surface.find_non_colliding_position (tree.name, {x,y}, 5, 1)
+    if newpos and
+       can_grow_on_tile (surface.get_tile (newpos.x, newpos.y))
+    then
+       return surface.create_entity{name=tree.name, 
+                                    position=newpos, 
+                                    force=tree.force}
+    else
+        return false
+    end
+end
+
+local function grow_trees_in_chunk (surface, chunk, max)
+    max = max or max_grown_per_tick
+    local trees = get_trees_about_chunk (surface, chunk)
+    if #trees == 0 then
+        return 0
+    end
+    
+    local grown = 0
+    local i = 0
+    repeat 
+        local tree = trees[math.random(#trees)]
+        i = i + 1
+--        local success = try_add_tree (surface, tree)
+--        if success then
+        if try_add_tree (surface, tree) then
+            grown = grown + 1
+        end
+    until i == #trees or grown >= max
+    return grown
+end
 
 local function grow_trees(m)
-        local num = 0
-        local allnum = 0
-        local str = ""
         local mm = m % #shuffle + 1
         local mx = shuffle[mm] % freq
         local my = math.floor(shuffle[mm] / freq)
         local surface = game.surfaces[1]
-        local totalc = 0
+        local added = 0
         for chunk in surface.get_chunks() do
-            allnum = allnum + 1
-
+            if added >= max_grown_per_tick then
+                break
+            end
             -- Grow trees on only the player's proximity since the player is not
             -- interested nor has means to observe deep in the unknown region.
             if fmod(chunk.x + mx, freq) == 0 and 
                fmod(chunk.y + my, freq) == 0 and
                is_near_playermap (chunk, m) 
             then
-                local area = {{chunk.x * chunksize, chunk.y * chunksize}, {(chunk.x + 1) * chunksize, (chunk.y + 1) * chunksize}}
-                local c = surface.count_entities_filtered{area = area, type = "tree"}
-                totalc = totalc + c
-                if 0 < c then
-                    local trees = surface.find_entities_filtered{area = area, type = "tree"}
-                    if 0 < #trees then
-                        local nondeadtree = false
-                        local tree = trees[math.random(#trees)]
-                        -- Draw trees until we get a non-dead tree.
-                        for try = 1,10 do
-                            if not eqany(tree.name, {"dead-tree", "dry-tree", "dead-grey-trunk", "dry-hairy-tree", "dead-dry-hairy-tree"}) then
-                                nondeadtree = true
-                                break
-                            end
-                        end
-                        if nondeadtree then
-                            local newpos
-                            local success = false
-                            -- Try until randomly generated position does not block something.
-                            for try = 1,10 do
-                                newpos = {tree.position.x + (math.random(-5,5)), tree.position.y + (math.random(-5,5))}
-                                local newarea = {{newpos[1] - 1, newpos[2] - 1}, {newpos[1] + 1, newpos[2] + 1}}
-                                local newarea2 = {{newpos[1] - 2, newpos[2] - 2}, {newpos[1] + 2, newpos[2] + 2}}
-                                if 0 == surface.count_entities_filtered{area = newarea, type = "tree"} and
-                                can_grow_on_tile (surface.get_tile (newpos[1], newpos[2])) and
-                                0 == surface.count_entities_filtered{area = newarea2, force = "player"} and
-                                surface.can_place_entity{name = tree.name, position = newpos, force = tree.force} then
-                                    success = true
-                                    break
-                                end
-                            end
-                            if success then
-                                num = num + 1
-                                surface.create_entity{name = tree.name, position = newpos, force = tree.force}
-                            end
-                        end
-                    end
-                end
+                added = added + grow_trees_in_chunk (surface, chunk, max_tick_chunk)
             end
         end
-        totalgen = totalgen + num
+        totalgen = totalgen + added
     end
 
+-- ===========
+-- === GUI ===
+-- ===========
+
 local function init_trees_gui ()
-    game.players[1].gui.left.add{type="frame", name="trees", caption="Trees", direction="vertical"}
-    -- original_tree_count = game.surfaces[1].count_entities_filtered{area={{-10000,-10000},{10000,10000}},type="tree"}
+    game.players[1].gui.left.add{type="frame", 
+                                 name="trees", 
+                                 caption="Trees", 
+                                 direction="vertical"}
     game.players[1].gui.left.trees.add{type="label",name="m"}
     game.players[1].gui.left.trees.add{type="label",name="total"}
     game.players[1].gui.left.trees.add{type="label",name="count"}
+---[[
     game.players[1].gui.left.trees.add{type="label",name="playermap"}
+--]]
 end
 
-local function update_trees_gui (trees_gui, cycle_state, tree_count, generated, playermap_count)
+local function update_trees_gui (trees_gui, 
+                                 cycle_state, 
+                                 tree_count, 
+                                 generated, 
+                                 playermap_count)
     trees_gui.m.caption = cycle_state
     trees_gui.total.caption = "Total trees: " .. tree_count
     trees_gui.count.caption = "Added trees: " .. generated
-    trees_gui.playermap.caption = "Playermap: " .. playermap_count[1] .. "/" .. playermap_count[2] .. "/" .. playermap_count[3]
+---[[
+    trees_gui.playermap.caption = "Playermap: " .. playermap_count[1] .. 
+                                   "/" .. playermap_count[2] .. 
+                                   "/" .. playermap_count[3]
+--]]
 end
+
+-- =================
+-- === LOOP/HOOK ===
+-- =================
 
 function on_tick(event)
     -- First, cache player map data by searching player owned entities.
@@ -256,7 +324,7 @@ function on_tick(event)
         local m = math.floor(game.tick / tree_expansion_frequency)
 
         -- As number of trees grows, the growth rate decreases, maxes at max_trees.
-        local numTrees = count_trees()
+        local numTrees = count_trees (tree_names)
         if numTrees < max_trees * tree_decrease_start or
            numTrees < max_trees * (tree_decrease_start + math.random() * (1 - tree_decrease_start)) 
         then
@@ -269,9 +337,15 @@ function on_tick(event)
             end
             update_trees_gui (game.players[1].gui.left.trees,
                               m % #shuffle .. '/' .. #shuffle,
-                              count_trees (),
+                              count_trees (tree_names),
                               totalgen,
                               countPlayerMap (m))
+--[[
+            update_trees_gui (game.players[1].gui.left.trees,
+                              m % #shuffle .. '/' .. #shuffle,
+                              count_trees (tree_names),
+                              totalgen)
+--]]
         end
     end
 end

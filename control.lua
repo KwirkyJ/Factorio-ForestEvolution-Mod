@@ -1,20 +1,20 @@
 require "config"
 -- inherits: 
 -- tree_update_interval
--- tree_update_locales
+-- tree_update_fraction
 -- enable_debug_window
+-- max_grown_per_tick
 -- tree_tile_densities
 -- tree_density_default
 -- tree_ore_density_modifier
--- max_grown_per_tick
+-- tree_tile_decay
+-- tree_decay_default
+-- tree_dieoff_chance
 
 local total_seeded, total_killed, total_decayed = 0, 0, 0
 local total_alive, total_dead = 0, 0
 
 local chunksize = 32
-local max_tick_chunk = 2
-
-local current_cycle = 0
 
 local tree_names = {
     "tree-01",
@@ -178,33 +178,6 @@ local function try_add_tree (surface, tree)
     end
 end
 
-local function spawn_trees_in_chunk (surface, trees, max)
-    max = max or max_tick_chunk
-    for _=1, math.min (max, #trees) do
-        local tree = trees[math.random(#trees)]
-        if try_add_tree (surface, tree) then
-            total_seeded = total_seeded + 1
-        end
-    end
-end
-
-local function cull_dead_trees (surface, trees, tries)
-    for _=1, math.min (tries, #trees) do
-        local i = math.random (#trees)
-        local tree = trees[i]
-        if eqany (tree.name, dead_tree_names) then
-            -- TODO: adjust removal chance to function of density and 'biome'
-            if math.random () < 0.2 then -- 20% chance to decay?
-                local success = tree.destroy () --TODO: destroy() vs die(); nuke everything to demonstrate clearly
-                if success then 
-                    table.remove (trees, i) 
-                    total_decayed = total_decayed + 1
-                end
-            end
-        end
-    end
-end
-
 local function get_trees_in_chunk (surface, chunk)
     local area = {{chunk.x * chunksize, chunk.y * chunksize}, 
                   {(chunk.x + 1) * chunksize, (chunk.y + 1) * chunksize}}
@@ -214,17 +187,6 @@ local function get_trees_in_chunk (surface, chunk)
         return {}
     end
 end
-
---[[
-local function update_trees_in_locale (L)
-    local chunk = L[math.random (#L)]
-    local surface = game.surfaces[1]
-    local trees = get_trees_in_chunk (surface, chunk)
-    cull_dead_trees (surface, trees, 10) -- trees table possibly modified here
-    -- kill some trees
-    spawn_trees_in_chunk (surface, trees, max_grown_per_tick)
-end
---]]
 
 -- ===============
 -- === LOCALES ===

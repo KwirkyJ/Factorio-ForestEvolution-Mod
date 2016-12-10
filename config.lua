@@ -58,5 +58,5 @@ tree_tile_decay = {
 tree_decay_default = 0.1
 
 -- likelihood of a tree dying
-tree_dieoff_chance = 0.005
+tree_dieoff_chance = 0.002
 

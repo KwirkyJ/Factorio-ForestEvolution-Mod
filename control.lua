@@ -299,32 +299,13 @@ end
 -- =================
 
 function on_tick(event)
-    --[[
-    if game.tick % tree_update_interval > 0 then 
-        return 
-    end
-    current_cycle = (current_cycle + 1) % tree_update_locales
-    if current_cycle == 0 then
-        current_cycle = #locales
-    end
-    add_missing_chunks_to_locales ()
-    update_trees_in_locale (locales[current_cycle]) 
-    --]]
-    ---[[
     if game.tick % tree_update_interval == 0 then
         local surface = game.surfaces[1]
         locales:add_missing_chunks (surface)
         
+        for _=1, math.ceil (locales.n * tree_update_fraction) do
+        
         local trees = get_trees_in_chunk (surface, locales:get_random_chunk ())
-        --[=[ handy nested comments
-        if #trees > 0 then
-            for _=1, #trees do
-                local tree = table.remove (trees, 1)
-                tree.destroy ()
-                total_killed = total_killed + 1
-            end
-        end
-        --]=]
         
         for _=1, math.min (max_grown_per_tick, #trees) do
             local i = math.random (#trees)
@@ -359,7 +340,8 @@ function on_tick(event)
                     total_killed = total_killed + 1
                 end
             end
-        end
+        end -- for min (...)
+        end -- for ceil (...)
     end
     
     --]]

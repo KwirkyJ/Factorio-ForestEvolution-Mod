@@ -197,8 +197,8 @@ local locales = {n=0, flat={}}
 -- locale[x][y]=i, ["n"] = count of chunks in structure
 -- e.g., {x=0,y=0}, {x=32,y=0}, {x=0,y=32}
 -- locales{n=3,
---         [0] = {0=3, 32=1}, 
---         [32] = {0=1},
+--         [0] = {0=true, 32=true}, 
+--         [32] = {0=true},
 --         flat = {[1] = {x= 0,y=0},
 --                 [2] = {x=32,y=0},
 --                 [3] = {x= 0,y=32},
@@ -206,14 +206,16 @@ local locales = {n=0, flat={}}
 --        }
 
 -- Get a random Chunk in the structure
--- @param locale_index 
--- @return nil iff structure is empty 
---             or no Chunk matches locale_index (if provided); 
+-- @return nil iff structure is empty; 
 --         else a Chunk
-locales.get_random_chunk = function (self, locale_index)
+locales.get_random_chunk = function (self)
+    if self.n > 0 then
+        return self.flat[math.random (#self.flat)]
+    end
+    --[[
     if self.n < 1 then 
         return nil 
-    elseif not locale_index then
+    else
         return self.flat[math.random (#self.flat)]
     else
         local n, seen, chunk, i = self.n, {}
@@ -221,19 +223,20 @@ locales.get_random_chunk = function (self, locale_index)
         while #seen < n do
             i = math.random (n)
             chunk, seen[i] = self.flat[i], true
-            if get_chunk_locale (chunk) == locale_index then
+            if has (chunk) == locale_index then
                 return chunk
             end
         end
         return nil
     end
+    --]]
 end
 
--- Get which locale this chunk is in
+-- Check whether structure has (contains) a Chunk
 -- @param chunk Chunk {x=0, y=32}, e.g.
 -- @return nil iff not in structure;
---         else number (integer)
-locales.get_chunk_locale = function (self, c)
+--         else true
+locales.has = function (self, c)
     if not self[c.x] then 
         return nil 
     else
@@ -244,13 +247,11 @@ end
 -- Add a Chunk to the structure
 -- @param chunk Chunk {x=0, y=32}, e.g.
 locales._add_chunk = function (self, chunk)
-    local i, n, row = math.random (tree_update_locales),
-                      self.n, 
-                      self[chunk.x]
+    local n, row = self.n, self[chunk.x]
     if row then
-        row[chunk.y] = i
+        row[chunk.y] = true
     else
-        self[chunk.x] = {[chunk.y] = i}
+        self[chunk.x] = {[chunk.y] = true}
     end
     table.insert (self.flat, {x = chunk.x, y = chunk.y})
     self.n = n + 1
@@ -261,7 +262,7 @@ end
 locales.add_missing_chunks = function (self, surface)
     surface = surface or game.surfaces[1]
     for chunk in surface.get_chunks () do
-        if not self:get_chunk_locale (chunk) then
+        if not self:has (chunk) then
             self:_add_chunk (chunk)
         end
     end
@@ -298,14 +299,8 @@ end
 -- === LOOP/HOOK ===
 -- =================
 
-function on_tick(event)
-    if game.tick % tree_update_interval == 0 then
-        local surface = game.surfaces[1]
-        locales:add_missing_chunks (surface)
-        
-        for _=1, math.ceil (locales.n * tree_update_fraction) do
-        
-        local trees = get_trees_in_chunk (surface, locales:get_random_chunk ())
+local function update_chunk (surface, chunk)
+    local trees = get_trees_in_chunk (surface, chunk)
         
         for _=1, math.min (max_grown_per_tick, #trees) do
             local i = math.random (#trees)
@@ -340,11 +335,19 @@ function on_tick(event)
                     total_killed = total_killed + 1
                 end
             end
-        end -- for min (...)
-        end -- for ceil (...)
+        end
+end
+
+function on_tick(event)
+    if game.tick % tree_update_interval == 0 then
+        local surface = game.surfaces[1]
+        locales:add_missing_chunks (surface)
+        
+        for _=1, math.ceil (locales.n * tree_update_fraction) do
+            update_chunk (surface, locales:get_random_chunk ())
+        end
     end
     
-    --]]
     total_alive = count_trees (tree_names) 
     total_dead = count_trees (dead_tree_names)
     if enable_debug_window then

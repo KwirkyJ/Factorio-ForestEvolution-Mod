@@ -299,6 +299,25 @@ end
 -- === LOOP/HOOK ===
 -- =================
 
+local function try_kill (surface, trees, i)
+    local tree = trees[i]
+    local position = {x=tree.position.x, y=tree.position.y}
+    local force = tree.force
+    --local d_ideal, d_actual = get_tree_density (surface, 
+    --                                            position, 
+    --                                            3)
+    --if math.random () < (d_actual / d_ideal)^4 then
+    if math.random () < tree_dieoff_chance then
+        tree.destroy ()
+        table.remove (trees, i)
+        local carcass = dead_tree_names[math.random (#dead_tree_names)]
+        surface.create_entity{name=carcass, 
+                              position=position, 
+                              force=force}
+        total_killed = total_killed + 1
+    end
+end
+
 local function update_chunk (surface, chunk)
     local trees = get_trees_in_chunk (surface, chunk)
         
@@ -319,21 +338,7 @@ local function update_chunk (surface, chunk)
                         total_seeded = total_seeded + 1
                     end
             else -- kill
-                local position = {x=tree.position.x, y=tree.position.y}
-                local force = tree.force
-                --local d_ideal, d_actual = get_tree_density (surface, 
-                --                                            position, 
-                --                                            3)
-                --if math.random () < (d_actual / d_ideal)^4 then
-                if math.random () < tree_dieoff_chance then
-                    tree.destroy ()
-                    table.remove (trees, i)
-                    local carcass = dead_tree_names[math.random (#dead_tree_names)]
-                    surface.create_entity{name=carcass, 
-                                          position=position, 
-                                          force=force}
-                    total_killed = total_killed + 1
-                end
+                try_kill (surface, trees, i)
             end
         end
 end

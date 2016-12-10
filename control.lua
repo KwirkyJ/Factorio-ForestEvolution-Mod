@@ -299,48 +299,48 @@ end
 -- === LOOP/HOOK ===
 -- =================
 
-local function try_kill (surface, trees, i)
-    local tree = trees[i]
+local function try_decompose (surface, trees, tree, i)
+    local tile = surface.get_tile (tree.position.x, tree.position.y)
+    if math.random () < (tree_tile_decay[tile.name] or 
+                         tree_decay_default) 
+    then
+        tree.destroy ()
+        table.remove (trees, i)
+        total_decayed = total_decayed + 1
+    end
+end
+
+local function try_seed (surface, tree)
+    if try_add_tree (surface, tree) then
+        total_seeded = total_seeded + 1
+    end
+end
+
+local function try_kill (surface, trees, tree, i)
     local position = {x=tree.position.x, y=tree.position.y}
     local force = tree.force
-    --local d_ideal, d_actual = get_tree_density (surface, 
-    --                                            position, 
-    --                                            3)
-    --if math.random () < (d_actual / d_ideal)^4 then
     if math.random () < tree_dieoff_chance then
         tree.destroy ()
         table.remove (trees, i)
         local carcass = dead_tree_names[math.random (#dead_tree_names)]
-        surface.create_entity{name=carcass, 
-                              position=position, 
-                              force=force}
+        surface.create_entity{name=carcass, position=position, force=force}
         total_killed = total_killed + 1
     end
 end
 
 local function update_chunk (surface, chunk)
     local trees = get_trees_in_chunk (surface, chunk)
-        
-        for _=1, math.min (max_grown_per_tick, #trees) do
-            local i = math.random (#trees)
-            local tree = trees[i]
-            if eqany (tree.name, dead_tree_names) then -- cull
-                local tile = surface.get_tile (tree.position.x, tree.position.y)
-                if math.random () < (tree_tile_decay[tile.name] or 
-                                     tree_decay_default) 
-                then
-                    tree.destroy ()
-                    table.remove (trees, i)
-                    total_decayed = total_decayed + 1
-                end
-            elseif i%2 == 1 then -- seed
-                    if try_add_tree (surface, tree) then
-                        total_seeded = total_seeded + 1
-                    end
-            else -- kill
-                try_kill (surface, trees, i)
-            end
+    for _=1, math.min (max_grown_per_tick, #trees) do
+        local i = math.random (#trees)
+        local tree = trees[i]
+        if eqany (tree.name, dead_tree_names) then
+            try_decompose (surface, trees, tree, i)
+        elseif i%2 == 1 then
+            try_seed (surface, tree)
+        else
+            try_kill (surface, trees, tree, i)
         end
+    end
 end
 
 function on_tick(event)
@@ -353,9 +353,9 @@ function on_tick(event)
         end
     end
     
-    total_alive = count_trees (tree_names) 
-    total_dead = count_trees (dead_tree_names)
     if enable_debug_window then
+        total_alive = count_trees (tree_names) 
+        total_dead = count_trees (dead_tree_names)
         if not game.players[1].gui.left.trees then
             init_trees_gui ()
         end

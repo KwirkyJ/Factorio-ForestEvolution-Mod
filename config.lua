@@ -4,7 +4,7 @@ tree_update_interval = 4
 
 -- how much of the map area (chunks) to update per cycle
 -- e.g., 0.01 on map with 864 chunks -> 9; 14 chunks -> 1
-tree_update_fraction = 0.01 --TODO: use in control.lua
+-- tree_update_fraction = 0.01 --TODO: use in control.lua
 
 -- Show debug window
 enable_debug_window = true
@@ -26,11 +26,11 @@ tree_tile_densities = {
     ["hazard-concrete-left"] = 0,
     ["hazard-concrete-right"] = 0,
     ["sand"] = 0.01,
-    ["sand-dark"] = 0.05,
-    ["dirt"] = 0,
-    ["dirt-dark"] = 1,
-    ["grass"] = 0.01,
-    ["grass-medium"] = 0.2,
+    ["sand-dark"] = 0.02,
+    ["dirt"] = 0.13,
+    ["dirt-dark"] = 0.15,
+    ["grass"] = 0.07,
+    ["grass-medium"] = 0.08,
     ["grass-dry"] = 0.05,
 }
 
@@ -46,11 +46,11 @@ tree_ore_density_modifier = 0.3
 -- 1 -> will be removed at next encounter with algorithm
 tree_tile_decay = {
     ["sand"] = 0.01,
-    ["sand-dark"] = 0.05,
-    ["dirt"] = 0,
-    ["dirt-dark"] = 1,
-    ["grass"] = 0.01,
-    ["grass-medium"] = 0.2,
+    ["sand-dark"] = 0.02,
+    ["dirt"] = 0.1,
+    ["dirt-dark"] = 0.1,
+    ["grass"] = 0.07,
+    ["grass-medium"] = 0.08,
     ["grass-dry"] = 0.05,
 }
 

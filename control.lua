@@ -371,9 +371,10 @@ function on_tick(event)
         local surface = game.surfaces[1]
         populate_locales (surface)
         
-        for _=1, math.ceil (locales:get_count () * tree_update_fraction) do
-            update_chunk_trees (surface, locales:get_random_chunk ())
-        end
+        --for _=1, math.ceil (locales:get_count () * tree_update_fraction) do
+        --    update_chunk_trees (surface, locales:get_random_chunk ())
+        --end
+        update_chunk_trees (surface, locales:get_random_chunk ())
     end
     
     if enable_debug_window then

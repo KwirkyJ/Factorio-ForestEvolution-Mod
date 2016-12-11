@@ -343,7 +343,7 @@ local function init_trees_gui ()
     local ui =  game.players[1].gui.left
     ui.add{type="frame", name="trees", caption="Trees", direction="vertical"}
     ui = ui.trees 
-    ui.add{type="label",name="progress"}
+    --ui.add{type="label",name="progress"}
     ui.add{type="label",name="total"}
     ui.add{type="label",name="grown"}
     ui.add{type="label",name="killed"}
@@ -353,7 +353,7 @@ local function init_trees_gui ()
 end
     
 local function update_trees_gui (ui)
-    ui.progress.caption = "State: ".. tree_update_interval - (game.tick % tree_update_interval)
+    --ui.progress.caption = "State: ".. tree_update_interval - (game.tick % tree_update_interval)
     ui.total.caption = "Total trees: "..total_alive+total_dead.." ("..total_alive..","..total_dead..")"
     ui.grown.caption = "Trees grown: " .. total_seeded
     ui.killed.caption = "Trees died: " .. total_killed

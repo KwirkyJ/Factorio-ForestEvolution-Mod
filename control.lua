@@ -192,51 +192,23 @@ end
 -- === LOCALES ===
 -- ===============
 
--- "Object" for storage and quick lookup of Chunks in the game Surface
-local locales = {n=0, flat={}}
--- locale[x][y]=i, ["n"] = count of chunks in structure
--- e.g., {x=0,y=0}, {x=32,y=0}, {x=0,y=32}
--- locales{n=3,
---         [0] = {0=true, 32=true}, 
---         [32] = {0=true},
---         flat = {[1] = {x= 0,y=0},
---                 [2] = {x=32,y=0},
---                 [3] = {x= 0,y=32},
---                }
---        }
+-- "Object" for storage, and quick lookup, and random access of Chunks 
+-- in the game Surface
 
 -- Get a random Chunk in the structure
 -- @return nil iff structure is empty; 
 --         else a Chunk
-locales.get_random_chunk = function (self)
+local function locales_get_random_chunk (self)
     if self.n > 0 then
         return self.flat[math.random (#self.flat)]
     end
-    --[[
-    if self.n < 1 then 
-        return nil 
-    else
-        return self.flat[math.random (#self.flat)]
-    else
-        local n, seen, chunk, i = self.n, {}
-        assert (n == #self.flat)
-        while #seen < n do
-            i = math.random (n)
-            chunk, seen[i] = self.flat[i], true
-            if has (chunk) == locale_index then
-                return chunk
-            end
-        end
-        return nil
-    end
-    --]]
 end
 
 -- Check whether structure has (contains) a Chunk
 -- @param chunk Chunk {x=0, y=32}, e.g.
 -- @return nil iff not in structure;
 --         else true
-locales.has = function (self, c)
+local function locales_has (self, c)
     if not self[c.x] then 
         return nil 
     else
@@ -246,7 +218,7 @@ end
 
 -- Add a Chunk to the structure
 -- @param chunk Chunk {x=0, y=32}, e.g.
-locales._add_chunk = function (self, chunk)
+local function locales_add_chunk (self, chunk)
     local n, row = self.n, self[chunk.x]
     if row then
         row[chunk.y] = true
@@ -257,16 +229,55 @@ locales._add_chunk = function (self, chunk)
     self.n = n + 1
 end
 
--- Iterate over Chunks in game surface and make sure all are in the structure
--- @param surface LuaSurface; defaults to game.surfaces[1]
-locales.add_missing_chunks = function (self, surface)
-    surface = surface or game.surfaces[1]
-    for chunk in surface.get_chunks () do
-        if not self:has (chunk) then
-            self:_add_chunk (chunk)
-        end
-    end
+local function locales_get_count (self)
+    return self.n
 end
+
+-- Create a pristine Locales "object"
+-- @return Locales table-object
+local function init_locales ()
+    return {n=0, 
+            flat={},
+            has = locales_has,
+            add_chunk = locales_add_chunk,
+            get_random_chunk = locales_get_random_chunk,
+            get_count = locales_get_count,
+           }
+end
+
+-- === TEST LOCALES ===
+local locales = init_locales ()
+assert (locales:get_count () == 0)
+assert (not locales:has ({x=0, y=0}))
+
+-- add chunks
+locales:add_chunk ({x=  0, y=64})
+locales:add_chunk ({x= 96, y=0})
+locales:add_chunk ({x=-32, y=0})
+locales:add_chunk ({x=  0, y=0})
+
+-- verify state and behaviors
+assert (locales:get_count () == 4)
+assert (locales:has ({x=0, y=0}))
+assert (locales:has ({x=96, y=0}))
+assert (locales:has ({x=0, y=64}))
+assert (not locales:has ({x=32, y=32}))
+for _=1, 5 do
+    assert (locales:has (locales:get_random_chunk ()))
+end
+
+-- test duplicate addition
+assert (locales:get_count () == 4)
+assert (locales:has ({x=96, y=0}))
+locales:add_chunk ({x=96, y=0})
+assert (locales:get_count () == 5)
+assert (locales:has ({x=96, y=0}))
+
+-- reset and verify
+locales = init_locales ()
+assert (locales:get_count () == 0)
+assert (not locales:has ({x=0, y=0}))
+-- === END LOCALES TESTS ===
 
 -- ===========
 -- === GUI ===
@@ -282,7 +293,7 @@ local function init_trees_gui ()
     ui.add{type="label",name="killed"}
     ui.add{type="label",name="decayed"}
     
-    ui.add{type="label",name="locales_n"}
+    ui.add{type="label",name="chunks"}
 end
     
 local function update_trees_gui (ui)
@@ -292,7 +303,7 @@ local function update_trees_gui (ui)
     ui.killed.caption = "Trees died: " .. total_killed
     ui.decayed.caption = "Trees decayed: " .. total_decayed
     
-    ui.locales_n.caption = "locales.n: " .. locales.n
+    ui.chunks.caption = "Chunks: " .. locales:get_count ()
 end
 
 -- =================
@@ -343,12 +354,20 @@ local function update_chunk (surface, chunk)
     end
 end
 
+local function populate_locales (surface)
+    for chunk in surface.get_chunks () do
+        if not locales:has (chunk) then
+            locales:add_chunk (chunk)
+        end
+    end
+end
+
 function on_tick(event)
     if game.tick % tree_update_interval == 0 then
         local surface = game.surfaces[1]
-        locales:add_missing_chunks (surface)
+        populate_locales (surface)
         
-        for _=1, math.ceil (locales.n * tree_update_fraction) do
+        for _=1, math.ceil (locales:get_count () * tree_update_fraction) do
             update_chunk (surface, locales:get_random_chunk ())
         end
     end

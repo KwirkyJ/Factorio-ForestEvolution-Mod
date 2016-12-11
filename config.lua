@@ -1,6 +1,6 @@
 
 -- number of ticks between update cycle
-tree_update_interval = 4
+--tree_update_interval = 4
 
 -- how much of the map area (chunks) to update per cycle
 -- e.g., 0.01 on map with 864 chunks -> 9; 14 chunks -> 1

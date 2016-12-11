@@ -367,7 +367,7 @@ end
 -- =================
 
 function on_tick(event)
-    if game.tick % tree_update_interval == 0 then
+    --if game.tick % tree_update_interval == 0 then
         local surface = game.surfaces[1]
         populate_locales (surface)
         
@@ -375,7 +375,7 @@ function on_tick(event)
         --    update_chunk_trees (surface, locales:get_random_chunk ())
         --end
         update_chunk_trees (surface, locales:get_random_chunk ())
-    end
+    --end
     
     if enable_debug_window then
         total_alive = count_trees (tree_names) 

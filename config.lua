@@ -25,17 +25,17 @@ tree_tile_densities = {
     ["concrete"] = 0,
     ["hazard-concrete-left"] = 0,
     ["hazard-concrete-right"] = 0,
-    ["sand"] = 0.01,
-    ["sand-dark"] = 0.02,
+    ["sand"] = 0.02,
+    ["sand-dark"] = 0.03,
     ["dirt"] = 0.13,
     ["dirt-dark"] = 0.15,
-    ["grass"] = 0.07,
-    ["grass-medium"] = 0.08,
-    ["grass-dry"] = 0.05,
+    ["grass"] = 0.12,
+    ["grass-medium"] = 0.11,
+    ["grass-dry"] = 0.09,
 }
 
 -- density when none of the above match (for any unforeseen reason)
-tree_density_default = 0.7
+tree_density_default = 0.1
 
 -- factor modifying tree density when tile has ore on it
 tree_ore_density_modifier = 0.3

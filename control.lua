@@ -13,6 +13,7 @@ require "config"
 
 local total_seeded, total_killed, total_decayed = 0, 0, 0
 local total_alive, total_dead = 0, 0
+local locales
 
 local chunksize = 32
 
@@ -137,9 +138,103 @@ local function get_tree_density (surface, position, radius)
     return capacity/area, get_tree_count (surface, position, radius)/area
 end
 
--- ===================
--- === TREE GROWTH ===
--- ===================
+-- ===============
+-- === LOCALES ===
+-- ===============
+
+local locales_has, locales_get_count
+local locales_add_chunk, locales_get_random_chunk
+
+-- Create a pristine Locales "object" for storage, quick lookup, 
+-- and random access of Chunks 
+-- @return Locales table-object-structure
+local function init_locales ()
+    return {n=0, 
+            flat={},
+            add_chunk = locales_add_chunk,
+            get_random_chunk = locales_get_random_chunk,
+            get_count = locales_get_count,
+            has = locales_has,
+           }
+end
+
+-- Add a Chunk to the structure
+-- @param chunk Chunk {x=0, y=32}, e.g.
+locales_add_chunk = function (self, chunk)
+    local n, row = self.n, self[chunk.x]
+    if row then
+        row[chunk.y] = true
+    else
+        self[chunk.x] = {[chunk.y] = true}
+    end
+    table.insert (self.flat, {x = chunk.x, y = chunk.y})
+    self.n = n + 1
+end
+
+-- Get count of chunks in structure
+-- @return number (integer)
+locales_get_count = function (self)
+    return self.n
+end
+
+-- Get a random Chunk in the structure
+-- @return nil iff structure is empty; 
+--         else a Chunk
+locales_get_random_chunk = function (self)
+    if self.n > 0 then
+        return self.flat[math.random (#self.flat)]
+    end
+end
+
+-- Check whether structure has (contains) a Chunk
+-- @param chunk Chunk {x=0, y=32}, e.g.
+-- @return nil iff not in structure;
+--         else true
+locales_has = function (self, c)
+    if not self[c.x] then 
+        return nil 
+    else
+        return self[c.x][c.y]
+    end
+end
+
+-- === TEST LOCALES ===
+locales = init_locales ()
+assert (locales:get_count () == 0)
+assert (not locales:has ({x=0, y=0}))
+
+-- add chunks
+locales:add_chunk ({x=  0, y=64})
+locales:add_chunk ({x= 96, y=0})
+locales:add_chunk ({x=-32, y=0})
+locales:add_chunk ({x=  0, y=0})
+
+-- verify state and behaviors
+assert (locales:get_count () == 4)
+assert (locales:has ({x=0, y=0}))
+assert (locales:has ({x=96, y=0}))
+assert (locales:has ({x=0, y=64}))
+assert (not locales:has ({x=32, y=32}))
+for _=1, 5 do
+    assert (locales:has (locales:get_random_chunk ()))
+end
+
+-- test duplicate addition
+assert (locales:get_count () == 4)
+assert (locales:has ({x=96, y=0}))
+locales:add_chunk ({x=96, y=0})
+assert (locales:get_count () == 5)
+assert (locales:has ({x=96, y=0}))
+
+-- reset and verify
+locales = init_locales ()
+assert (locales:get_count () == 0)
+assert (not locales:has ({x=0, y=0}))
+-- === END LOCALES TESTS ===
+
+-- ==================
+-- === TREE STUFF ===
+-- ==================
 
 local function can_grow_on_tile (surface, tile)
     local d_target, d_ideal, d_actual --densities 
@@ -188,96 +283,57 @@ local function get_trees_in_chunk (surface, chunk)
     end
 end
 
--- ===============
--- === LOCALES ===
--- ===============
-
--- "Object" for storage, and quick lookup, and random access of Chunks 
--- in the game Surface
-
--- Get a random Chunk in the structure
--- @return nil iff structure is empty; 
---         else a Chunk
-local function locales_get_random_chunk (self)
-    if self.n > 0 then
-        return self.flat[math.random (#self.flat)]
+local function try_decompose (surface, trees, tree, i)
+    local tile = surface.get_tile (tree.position.x, tree.position.y)
+    if math.random () < (tree_tile_decay[tile.name] or 
+                         tree_decay_default) 
+    then
+        tree.destroy ()
+        table.remove (trees, i)
+        total_decayed = total_decayed + 1
     end
 end
 
--- Check whether structure has (contains) a Chunk
--- @param chunk Chunk {x=0, y=32}, e.g.
--- @return nil iff not in structure;
---         else true
-local function locales_has (self, c)
-    if not self[c.x] then 
-        return nil 
-    else
-        return self[c.x][c.y]
+local function try_seed (surface, tree)
+    if try_add_tree (surface, tree) then
+        total_seeded = total_seeded + 1
     end
 end
 
--- Add a Chunk to the structure
--- @param chunk Chunk {x=0, y=32}, e.g.
-local function locales_add_chunk (self, chunk)
-    local n, row = self.n, self[chunk.x]
-    if row then
-        row[chunk.y] = true
-    else
-        self[chunk.x] = {[chunk.y] = true}
+local function try_kill (surface, trees, tree, i)
+    local position = {x=tree.position.x, y=tree.position.y}
+    local force = tree.force
+    if math.random () < tree_dieoff_chance then
+        tree.destroy ()
+        table.remove (trees, i)
+        local carcass = dead_tree_names[math.random (#dead_tree_names)]
+        surface.create_entity{name=carcass, position=position, force=force}
+        total_killed = total_killed + 1
     end
-    table.insert (self.flat, {x = chunk.x, y = chunk.y})
-    self.n = n + 1
 end
 
-local function locales_get_count (self)
-    return self.n
+local function update_chunk_trees (surface, chunk)
+    local trees = get_trees_in_chunk (surface, chunk)
+    for _=1, math.min (max_grown_per_tick, #trees) do
+        local i = math.random (#trees)
+        local tree = trees[i]
+        if eqany (tree.name, dead_tree_names) then
+            try_decompose (surface, trees, tree, i)
+        elseif i%2 == 1 then
+            try_seed (surface, tree)
+        else
+            try_kill (surface, trees, tree, i)
+        end
+    end
 end
 
--- Create a pristine Locales "object"
--- @return Locales table-object
-local function init_locales ()
-    return {n=0, 
-            flat={},
-            has = locales_has,
-            add_chunk = locales_add_chunk,
-            get_random_chunk = locales_get_random_chunk,
-            get_count = locales_get_count,
-           }
+local function populate_locales (surface)
+    for chunk in surface.get_chunks () do
+        if not locales:has (chunk) then
+            locales:add_chunk (chunk)
+        end
+    end
 end
-
--- === TEST LOCALES ===
-local locales = init_locales ()
-assert (locales:get_count () == 0)
-assert (not locales:has ({x=0, y=0}))
-
--- add chunks
-locales:add_chunk ({x=  0, y=64})
-locales:add_chunk ({x= 96, y=0})
-locales:add_chunk ({x=-32, y=0})
-locales:add_chunk ({x=  0, y=0})
-
--- verify state and behaviors
-assert (locales:get_count () == 4)
-assert (locales:has ({x=0, y=0}))
-assert (locales:has ({x=96, y=0}))
-assert (locales:has ({x=0, y=64}))
-assert (not locales:has ({x=32, y=32}))
-for _=1, 5 do
-    assert (locales:has (locales:get_random_chunk ()))
-end
-
--- test duplicate addition
-assert (locales:get_count () == 4)
-assert (locales:has ({x=96, y=0}))
-locales:add_chunk ({x=96, y=0})
-assert (locales:get_count () == 5)
-assert (locales:has ({x=96, y=0}))
-
--- reset and verify
-locales = init_locales ()
-assert (locales:get_count () == 0)
-assert (not locales:has ({x=0, y=0}))
--- === END LOCALES TESTS ===
 
 -- ===========
 -- === GUI ===
@@ -310,65 +366,13 @@ end
 -- === LOOP/HOOK ===
 -- =================
 
-local function try_decompose (surface, trees, tree, i)
-    local tile = surface.get_tile (tree.position.x, tree.position.y)
-    if math.random () < (tree_tile_decay[tile.name] or 
-                         tree_decay_default) 
-    then
-        tree.destroy ()
-        table.remove (trees, i)
-        total_decayed = total_decayed + 1
-    end
-end
-
-local function try_seed (surface, tree)
-    if try_add_tree (surface, tree) then
-        total_seeded = total_seeded + 1
-    end
-end
-
-local function try_kill (surface, trees, tree, i)
-    local position = {x=tree.position.x, y=tree.position.y}
-    local force = tree.force
-    if math.random () < tree_dieoff_chance then
-        tree.destroy ()
-        table.remove (trees, i)
-        local carcass = dead_tree_names[math.random (#dead_tree_names)]
-        surface.create_entity{name=carcass, position=position, force=force}
-        total_killed = total_killed + 1
-    end
-end
-
-local function update_chunk (surface, chunk)
-    local trees = get_trees_in_chunk (surface, chunk)
-    for _=1, math.min (max_grown_per_tick, #trees) do
-        local i = math.random (#trees)
-        local tree = trees[i]
-        if eqany (tree.name, dead_tree_names) then
-            try_decompose (surface, trees, tree, i)
-        elseif i%2 == 1 then
-            try_seed (surface, tree)
-        else
-            try_kill (surface, trees, tree, i)
-        end
-    end
-end
-
-local function populate_locales (surface)
-    for chunk in surface.get_chunks () do
-        if not locales:has (chunk) then
-            locales:add_chunk (chunk)
-        end
-    end
-end
-
 function on_tick(event)
     if game.tick % tree_update_interval == 0 then
         local surface = game.surfaces[1]
         populate_locales (surface)
         
         for _=1, math.ceil (locales:get_count () * tree_update_fraction) do
-            update_chunk (surface, locales:get_random_chunk ())
+            update_chunk_trees (surface, locales:get_random_chunk ())
         end
     end
     

@@ -1,18 +1,10 @@
---require "config"
 local config = require "./config"
--- inherits: 
--- enable_debug_window
--- seed_location_search_tries
--- max_modified_per_tick
--- tree_tile_properties
--- tree_tile_ore_modifiers
 
 local locales = require ("./locales")["init_locales"] ()
 assert (type(locales) == type({}), "failed to initiate locales")
 
 local total_seeded, total_killed, total_decayed = 0, 0, 0
 local total_alive, total_dead = 0, 0
---local locales
 
 local chunksize = 32
 
@@ -46,8 +38,6 @@ local dead_tree_names = {
 -- =================
 -- === UTILITIES ===
 -- =================
-
---local fmod = math.fmod
 
 -- round to nearest zero
 -- !note! round(-0.5) -> -1
@@ -114,7 +104,7 @@ local function count_trees (names)
     return sum
 end
 
-local function tile_has_ore (surface, position)
+local function ore_at_position (surface, position)
     return 0 < surface.count_entities_filtered{position=position, 
                                                type="resource"}
 end
@@ -123,7 +113,7 @@ local function get_tile_properties (surface, tile)
     if not tile.valid then return nil end
     -- assert (tile.valid) -- find a gentler way?
     local props = config.tree_tile_properties[tile.name] or {}
-    local ore_on_tile = tile_has_ore (surface, tile.position)
+    local ore_on_tile = ore_at_position (surface, tile.position)
     for k,v in pairs (config.tree_tile_properties.default) do
         props[k] = props[k] or v
         if ore_on_tile then
@@ -210,7 +200,6 @@ local function try_kill (death_chance, surface, tree, trees, i)
     local position, force = {x=tree.position.x, y=tree.position.y}, tree.force
     tree.destroy ()
     table.remove (trees, i)
-    --carcass = dead_tree_names[math.random (#dead_tree_names)]
     surface.create_entity{name=dead_tree_names[math.random (#dead_tree_names)],
                           position=position,
                           force=force}
@@ -263,7 +252,7 @@ end
 -- === LOOP/HOOK ===
 -- =================
 
-function on_tick(event)
+local function on_tick(event)
     local surface = game.surfaces[1]
     populate_locales (surface)
     update_chunk_trees (surface, locales:get_random_chunk ())

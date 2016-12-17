@@ -1,4 +1,5 @@
-require "config"
+--require "config"
+local config = require "./config"
 -- inherits: 
 -- enable_debug_window
 -- seed_location_search_tries
@@ -121,12 +122,12 @@ end
 local function get_tile_properties (surface, tile)
     if not tile.valid then return nil end
     -- assert (tile.valid) -- find a gentler way?
-    local props = tree_tile_properties[tile.name] or {}
+    local props = config.tree_tile_properties[tile.name] or {}
     local ore_on_tile = tile_has_ore (surface, tile.position)
-    for k,v in pairs (tree_tile_properties.default) do
+    for k,v in pairs (config.tree_tile_properties.default) do
         props[k] = props[k] or v
         if ore_on_tile then
-            props[k] = props[k] * tree_tile_ore_modifiers[k]
+            props[k] = props[k] * config.tree_tile_ore_modifiers[k]
         end
     end
     return props
@@ -169,7 +170,7 @@ end
 
 local function get_seeding_location (surface, tree)
     local x, y, dx, dy, p
-    for _=1, seed_location_search_tries do
+    for _=1, config.seed_location_search_tries do
         dx, dy = marsaglia ()
         x, y = round (tree.position.x + dx), round (tree.position.y + dy)
         if x ~= tree.position.x and y ~= tree.position.y then
@@ -206,9 +207,7 @@ local function try_kill (death_chance, surface, tree, trees, i)
     if math.random () > death_chance then 
         return 
     end
-    local position, force, carcass
-    position = {x=tree.position.x, y=tree.position.y}
-    force = tree.force
+    local position, force = {x=tree.position.x, y=tree.position.y}, tree.force
     tree.destroy ()
     table.remove (trees, i)
     --carcass = dead_tree_names[math.random (#dead_tree_names)]
@@ -220,7 +219,7 @@ end
 
 local function update_chunk_trees (surface, chunk)
     local trees = get_trees_in_chunk (surface, chunk)
-    for _=1, math.min (max_modified_per_tick, #trees) do
+    for _=1, math.min (config.max_modified_per_tick, #trees) do
         local i = math.random (#trees)
         local tree = trees[i]
         local t_props = get_tile_properties_position (surface, tree.position)
@@ -269,7 +268,7 @@ function on_tick(event)
     populate_locales (surface)
     update_chunk_trees (surface, locales:get_random_chunk ())
     
-    if enable_debug_window then
+    if config.enable_debug_window then
         total_alive = count_trees (tree_names) 
         total_dead = count_trees (dead_tree_names)
         if not game.players[1].gui.left.trees then

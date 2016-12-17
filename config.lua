@@ -1,13 +1,16 @@
 return {
-    -- TODO: re-implement update intervals
     -- Number of ticks between updating trees
     -- 1 = every tick; 60 = once every sixty ticks
-    tree_update_interval = 1
+    tree_update_interval = 1,
    
     -- TODO: deprecate max_modified in favor of fractional count
     -- Maximim number of trees touched in a chunk
     -- 0.25 = up to 1/4 of a chunk's trees modified
-    -- tree_chunk_population_fraction = 0.3
+    -- tree_chunk_population_fraction = 0.3,
+    
+    -- How much area around the player to update
+    -- Creates a record of chunks to update
+    tree_chunk_radius = 8,
 
     -- Show debug window
     enable_debug_window = true,

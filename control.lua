@@ -128,10 +128,18 @@ local function get_tile_properties_position (surface, position)
                                 surface.get_tile (position.x, position.y))
 end
 
-local function populate_locales (surface)
-    for chunk in surface.get_chunks () do
-        if not locales:has (chunk) then
-            locales:add_chunk (chunk)
+local function populate_locales ()
+    local x, y, chunk
+    for _,player in pairs (game.players) do
+        x, y = round (player.position.x / chunksize), 
+               round (player.position.y / chunksize)
+        for u = x-config.tree_chunk_radius, config.tree_chunk_radius+1 do
+            for v = x-config.tree_chunk_radius, config.tree_chunk_radius+1 do
+                chunk = {x=u, y=v}
+                if not locales:has (chunk) then
+                    locales:add_chunk (chunk)
+                end
+            end
         end
     end
 end
@@ -245,7 +253,7 @@ local function update_trees_gui (ui)
     ui.killed.caption = "Trees died: " .. total_killed
     ui.decayed.caption = "Trees decayed: " .. total_decayed
     
-    ui.chunks.caption = "Chunks: " .. locales:get_count ()
+    ui.chunks.caption = "Chunks: "..locales:get_count () -- tostring (locales)
 end
 
 -- =================
@@ -253,17 +261,19 @@ end
 -- =================
 
 local function on_tick(event)
-    local surface = game.surfaces[1]
-    populate_locales (surface)
-    update_chunk_trees (surface, locales:get_random_chunk ())
+    if game.tick % config.tree_update_interval == 0 then
+        local surface = game.surfaces[1]
+        populate_locales ()
+        update_chunk_trees (surface, locales:get_random_chunk ())
     
-    if config.enable_debug_window then
-        total_alive = count_trees (tree_names) 
-        total_dead = count_trees (dead_tree_names)
-        if not game.players[1].gui.left.trees then
-            init_trees_gui ()
+        if config.enable_debug_window then
+            total_alive = count_trees (tree_names) 
+            total_dead = count_trees (dead_tree_names)
+            if not game.players[1].gui.left.trees then
+                init_trees_gui ()
+            end
+            update_trees_gui (game.players[1].gui.left.trees)
         end
-        update_trees_gui (game.players[1].gui.left.trees)
     end
 end
 

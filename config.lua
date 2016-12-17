@@ -1,4 +1,13 @@
 return {
+    -- TODO: re-implement update intervals
+    -- Number of ticks between updating trees
+    -- 1 = every tick; 60 = once every sixty ticks
+    tree_update_interval = 1
+   
+    -- TODO: deprecate max_modified in favor of fractional count
+    -- Maximim number of trees touched in a chunk
+    -- 0.25 = up to 1/4 of a chunk's trees modified
+    -- tree_chunk_population_fraction = 0.3
 
     -- Show debug window
     enable_debug_window = true,
@@ -35,9 +44,9 @@ return {
         ["sand-dark"] = {mast = 0.25, spawn = 0.4, death = 0.1, decay = 0.1},
         ["dirt"] = {spawn = 0.8, death = 0.3, decay = 0.3},
         ["dirt-dark"] = {spawn = 0.8, death = 0.3, decay = 0.3},
-        ["grass"] = {spawn = 0.67, death = 0.22, decay = 0.5},
-        ["grass-medium"] = {spawn = 0.67, death = 0.22, decay = 0.5},
-        ["grass-dry"] = {spawn = 0.67, death = 0.22, decay = 0.5},
+        ["grass"] = {spawn = 0.67, death = 0.22, decay = 0.85},
+        ["grass-medium"] = {spawn = 0.67, death = 0.22, decay = 0.85},
+        ["grass-dry"] = {spawn = 0.67, death = 0.22, decay = 0.85},
     },
 
     -- factor modifying tree behavior when tile has ore on it

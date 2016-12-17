@@ -9,54 +9,44 @@
 -- Show debug window
 enable_debug_window = true
 
+-- How many attempts to make at finding an unobstructed position
+-- on which a seed might fall
+seed_location_search_tries = 5
+
 --
-max_grown_per_tick = 256
+max_modified_per_tick = 256
 
--- how tightly packed can trees get on different types of terrain
--- 0 -> will not grow at all
--- 1 -> probably cannot walk between
-tree_tile_densities = {
-    ["out-of-map"] = 0,
-    ["deepwater"] = 0,
-    ["deepwater-green"] = 0,
-    ["water"] = 0,
-    ["water-green"] = 0,
-    ["stone-path"] = 0,
-    ["concrete"] = 0,
-    ["hazard-concrete-left"] = 0,
-    ["hazard-concrete-right"] = 0,
-    ["sand"] = 0.02,
-    ["sand-dark"] = 0.03,
-    ["dirt"] = 0.13,
-    ["dirt-dark"] = 0.15,
-    ["grass"] = 0.12,
-    ["grass-medium"] = 0.11,
-    ["grass-dry"] = 0.09,
+-- probabilities of each occurrence on different tile types
+-- "default" serves two roles:
+-- 1 - used in event that a tile name is not matched
+-- 2 - default values which tile[name][property] overrides
+-- mast  -> probability of seeding
+-- spawn -> probability of seed producing a tree
+-- death -> probability of tree dying and producing a carcass (dead tree)
+-- decay -> probability of carcass being removed
+-- ? if death > mast*spawn then population will probably die off
+-- ? if decay > death then number of dead trees will probably be low
+tree_tile_properties = {
+    ["default"] = {mast = 0.4, spawn = 0.8, death = 0.3, decay = 0.3},
+    ["out-of-map"] = {spawn = 0},
+    ["deepwater"] = {spawn = 0},
+    ["deepwater-green"] = {spawn = 0},
+    ["water"] = {spawn = 0},
+    ["water-green"] = {spawn = 0},
+    ["stone-path"] = {spawn = 0},
+    ["concrete"] = {spawn = 0},
+    ["hazard-concrete-left"] = {spawn = 0},
+    ["hazard-concrete-right"] = {spawn = 0},
+    ["sand"] = {mast = 0.25, spawn = 0.2, death = 0.15, decay = 0.15},
+    ["sand-dark"] = {mast = 0.25, spawn = 0.4, death = 0.1, decay = 0.1},
+    ["dirt"] = {spawn = 0.8, death = 0.3, decay = 0.3},
+    ["dirt-dark"] = {spawn = 0.8, death = 0.3, decay = 0.3},
+    ["grass"] = {spawn = 0.67, death = 0.22, decay = 0.5},
+    ["grass-medium"] = {spawn = 0.67, death = 0.22, decay = 0.5},
+    ["grass-dry"] = {spawn = 0.67, death = 0.22, decay = 0.5},
 }
 
--- density when none of the above match (for any unforeseen reason)
-tree_density_default = 0.1
 
--- factor modifying tree density when tile has ore on it
-tree_ore_density_modifier = 0.3
-
--- probability of a tree decaying in a certain type of terrain ("biome")
--- can optimize by omitting tree-inhospitable tiles
--- 0 -> will be around forever
--- 1 -> will be removed at next encounter with algorithm
-tree_tile_decay = {
-    ["sand"] = 0.01,
-    ["sand-dark"] = 0.02,
-    ["dirt"] = 0.1,
-    ["dirt-dark"] = 0.1,
-    ["grass"] = 0.07,
-    ["grass-medium"] = 0.08,
-    ["grass-dry"] = 0.05,
-}
-
---default value when tile name does not match any tree_tile_decay keys
-tree_decay_default = 0.1
-
--- likelihood of a tree dying
-tree_dieoff_chance = 0.002
+-- factor modifying tree behavior when tile has ore on it
+tree_tile_ore_modifiers = {mast = 1, spawn = 0.3, death = 1, decay = 0.6}
 

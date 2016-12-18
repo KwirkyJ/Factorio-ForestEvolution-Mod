@@ -31,6 +31,7 @@ local function init_locales ()
     return L
 end
 
+--[[
 ---Create a new table where the chunks are sorted, least-x, least-y first
 ---Is expensive at present, O(x^2), but should not be called frequently
 ---@param T table of Chunks ({{x=n, y=m}}, e.g.)
@@ -62,6 +63,7 @@ local function sort_chunks (T)
     end
     return sorted
 end
+--]]
 
 ---Add a Chunk to the structure
 ---@param chunk Chunk ({x=0, y=32}, e.g.)
@@ -72,8 +74,8 @@ locales_add_chunk = function (self, chunk)
     else
         self[x] = {[y] = true}
     end
-    table.insert (self._flat, {x = x, y = y})
-    self._flat = sort_chunks (self._flat)
+    self._flat[self._n] = {x = x, y = y}
+--    self._flat = sort_chunks (self._flat)
     self._n = self._n + 1
 end
 

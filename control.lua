@@ -1,12 +1,14 @@
 local config = require "./config"
 
 local locales = require ("./locales")["init_locales"] ()
-assert (type(locales) == type({}), "failed to initiate locales")
+assert (locales.add_chunk, "failed to initiate locales")
 
 local total_seeded, total_killed, total_decayed = 0, 0, 0
 local total_alive, total_dead = 0, 0
 
 local chunksize = 32
+
+local cycle_search, cycle_seed, cycle_grown, cycle_kill, cycle_decay, cycle_trees
 
 local tree_names = {
     "tree-01",
@@ -93,6 +95,27 @@ assert (not eqany (4, {[1]=3, [3]=4}), "sparse, interrupted array")
 assert (not eqany (2, {[1]=true, [2]=true, [3]=true}), "2 not in values")
 assert (not eqany (2, {["a"]=2}), "associative table")
 
+-- wrapper to handle debug logging
+local function log_act (a)
+    if not config.enable_debug_window then 
+        return 
+    end
+    if a == "kill" then
+        total_killed = total_killed + 1
+        cycle_kill   = cycle_kill + 1
+    elseif a == "mast" then
+        cycle_seed = cycle_seed + 1
+    elseif a == "grow" then
+        total_seeded = total_seeded + 1
+        cycle_grown = cycle_grown + 1
+    elseif a == "decay" then
+        total_decayed = total_decayed + 1
+        cycle_decay = cycle_decay + 1
+    elseif a == "seedsearch" then
+        cycle_search = cycle_search + 1
+    end
+end
+
 -- LuaSurface.count_entities_filtered() is slow.
 -- LuaForce.get_entity_count() is much faster, but it needs 
 -- entity name argument, not type so we must repeat it for all types of trees.
@@ -109,10 +132,17 @@ local function ore_at_position (surface, position)
                                                type="resource"}
 end
 
-local function get_tile_properties (surface, tile)
-    if not tile.valid then return nil end
-    -- assert (tile.valid) -- find a gentler way?
-    local props = config.tree_tile_properties[tile.name] or {}
+local function get_tile_properties (surface, tile) 
+    if not tile.valid then 
+        return nil 
+    end
+    local props = {}
+    local tileref = config.tree_tile_properties[tile.name]
+    if tileref then
+        for k,v in pairs (tileref) do
+            props[k] = v
+        end
+    end
     local ore_on_tile = ore_at_position (surface, tile.position)
     for k,v in pairs (config.tree_tile_properties.default) do
         props[k] = props[k] or v
@@ -133,8 +163,8 @@ local function populate_locales ()
     for _,player in pairs (game.players) do
         x, y = round (player.position.x / chunksize), 
                round (player.position.y / chunksize)
-        for u = x-config.tree_chunk_radius, config.tree_chunk_radius+1 do
-            for v = x-config.tree_chunk_radius, config.tree_chunk_radius+1 do
+        for u = x-config.tree_chunk_radius, x+config.tree_chunk_radius do
+            for v = y-config.tree_chunk_radius, y+config.tree_chunk_radius do
                 chunk = {x=u, y=v}
                 if not locales:has (chunk) then
                     locales:add_chunk (chunk)
@@ -162,26 +192,37 @@ local function try_decompose (decay_chance, tree, trees, i)
     if math.random () <= decay_chance then
         tree.destroy ()
         table.remove (trees, i)
-        total_decayed = total_decayed + 1
+        log_act ("decay")
     end
 end
 
 local function get_seeding_location (surface, tree)
-    local x, y, dx, dy, p
+    local dx, dy, p
     for _=1, config.seed_location_search_tries do
+        log_act ("seedsearch")
         dx, dy = marsaglia ()
-        x, y = round (tree.position.x + dx), round (tree.position.y + dy)
+        p = {x = tree.position.x + dx, 
+             y = tree.position.y + dy}
+        if surface.can_place_entity{name=tree.name, 
+                                    position=p, 
+                                    force=tree.force}
+        then
+            return p
+        end
+        --[[
         if x ~= tree.position.x and y ~= tree.position.y then
             p = surface.find_non_colliding_position (tree.name, {x,y}, 1, 1)
             if p then
                 return p
             end
         end
+        --]]
     end
 end
 
 local function try_spawn (surface, tree)
     local p, t_props
+    log_act ("mast")
     p = get_seeding_location (surface, tree)
     if p then
         t_props = get_tile_properties_position (surface, p)
@@ -193,40 +234,42 @@ local function try_spawn (surface, tree)
     end
 end
 
-local function try_seed (seed_chance, surface, tree)
-    if math.random () <= seed_chance then
-        if try_spawn (surface, tree) then
-            total_seeded = total_seeded + 1
-        end
+local function seed_tree (surface, tree)
+    if try_spawn (surface, tree) then
+        log_act ("grow")
     end
 end
 
-local function try_kill (death_chance, surface, tree, trees, i)
-    if math.random () > death_chance then 
-        return 
-    end
+local function kill_tree (surface, tree, trees, i)
     local position, force = {x=tree.position.x, y=tree.position.y}, tree.force
     tree.destroy ()
     table.remove (trees, i)
     surface.create_entity{name=dead_tree_names[math.random (#dead_tree_names)],
                           position=position,
                           force=force}
-    total_killed = total_killed + 1
+    log_act ("kill")
 end
 
 local function update_chunk_trees (surface, chunk)
     local trees = get_trees_in_chunk (surface, chunk)
-    for _=1, math.min (config.max_modified_per_tick, #trees) do
+    if #trees == 0 then 
+        return 
+    end
+    local maxtrees = #trees*config.tree_chunk_population_fraction
+    maxtrees = math.random (math.min (#trees, math.ceil (maxtrees)))
+    if config.enable_debug_window then
+        cycle_trees = maxtrees
+    end
+    for _=1, maxtrees do
         local i = math.random (#trees)
         local tree = trees[i]
         local t_props = get_tile_properties_position (surface, tree.position)
-        assert (t_props, "tree's position does not yield valid tile?")
         if eqany (tree.name, dead_tree_names) then
             try_decompose (t_props.decay, tree, trees, i)
-        elseif i%2 == 1 then
-            try_seed (t_props.mast, surface, tree)
-        else
-            try_kill (t_props.death, surface, tree, trees, i)
+        elseif math.random () < t_props.mast then
+            seed_tree (surface, tree)
+        elseif math.random () < t_props.death then
+            kill_tree (surface, tree, trees, i)
         end
     end
 end
@@ -240,20 +283,34 @@ local function init_trees_gui ()
     ui.add{type="frame", name="trees", caption="Trees", direction="vertical"}
     ui = ui.trees 
     ui.add{type="label",name="total"}
+    ui.add{type="label",name="total_live"}
+    ui.add{type="label",name="total_dead"}
     ui.add{type="label",name="grown"}
     ui.add{type="label",name="killed"}
     ui.add{type="label",name="decayed"}
-    
     ui.add{type="label",name="chunks"}
+    ui.add{type="label",name="treecount"}
+    ui.add{type="label",name="cycleseed"}
+    ui.add{type="label",name="cyclesearch"}
+    ui.add{type="label",name="cyclegrown"}
+    ui.add{type="label",name="cyclekill"}
+    ui.add{type="label",name="cycledecay"}
 end
-    
+
 local function update_trees_gui (ui)
-    ui.total.caption = "Total trees: "..total_alive+total_dead.." ("..total_alive..","..total_dead..")"
-    ui.grown.caption = "Trees grown: " .. total_seeded
-    ui.killed.caption = "Trees died: " .. total_killed
-    ui.decayed.caption = "Trees decayed: " .. total_decayed
-    
-    ui.chunks.caption = "Chunks: "..locales:get_count () -- tostring (locales)
+    ui.total.caption = "Trees Total: "..total_alive+total_dead
+    ui.total_live.caption = "Alive: "..total_alive
+    ui.total_dead.caption = "Dead: "..total_dead
+    ui.grown.caption = "Grown: " .. total_seeded
+    ui.killed.caption = "Died: " .. total_killed
+    ui.decayed.caption = "Decayed: " .. total_decayed
+    ui.chunks.caption = "chunks: " .. locales:get_count ()
+    ui.treecount.caption = "touched: " .. cycle_trees
+    ui.cycleseed.caption = "masted: " .. cycle_seed
+    ui.cyclesearch.caption = "searched: " .. cycle_search
+    ui.cyclegrown.caption = "grown: " .. cycle_grown
+    ui.cyclekill.caption = "killed: " .. cycle_kill
+    ui.cycledecay.caption = "decayed: " .. cycle_decay
 end
 
 -- =================
@@ -264,6 +321,9 @@ local function on_tick(event)
     if game.tick % config.tree_update_interval == 0 then
         local surface = game.surfaces[1]
         populate_locales ()
+        if config.enable_debug_window then
+            cycle_search, cycle_trees, cycle_seed, cycle_grown, cycle_kill, cycle_decay = 0,0,0,0,0,0
+        end
         update_chunk_trees (surface, locales:get_random_chunk ())
     
         if config.enable_debug_window then
@@ -279,3 +339,4 @@ end
 
 -- Register event handlers
 script.on_event(defines.events.on_tick, function(event) on_tick(event) end)
+

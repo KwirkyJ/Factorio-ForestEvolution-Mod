@@ -74,9 +74,9 @@ locales_add_chunk = function (self, chunk)
     else
         self[x] = {[y] = true}
     end
+    self._n = self._n + 1
     self._flat[self._n] = {x = x, y = y}
 --    self._flat = sort_chunks (self._flat)
-    self._n = self._n + 1
 end
 
 ---Get count of chunks in structure

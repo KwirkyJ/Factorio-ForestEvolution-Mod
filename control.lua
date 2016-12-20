@@ -1,4 +1,5 @@
 local config = require "./config"
+local utils  = require "./utils"
 
 local locales = require ("./locales")["init_locales"] ()
 assert (locales.add_chunk, "failed to initiate locales")
@@ -41,59 +42,9 @@ local dead_tree_names = {
 -- === UTILITIES ===
 -- =================
 
--- round to nearest zero
--- !note! round(-0.5) -> -1
-local function round (n)
-    if n >= 0 then 
-        return math.floor (n+0.5)
-    else
-        return math.ceil (n-0.5)
-    end
-end
-assert (round ( 1.5) == 2)
-assert (round ( 1.2) == 1)
-assert (round ( 0.8) == 1)
-assert (round ( 0.5) == 1)
-assert (round ( 0.3) == 0)
-assert (round ( 0.0) == 0)
-assert (round (-0.3) == 0)
-assert (round (-0.5) ==-1)
-assert (round (-0.8) ==-1)
-assert (round (-2.2) ==-2)
-
--- random-number generator with normal distribution centered about 0
--- values in excess of +/- 3 are uncommon
-local function marsaglia ()
-    local u,v,S
-    repeat
-        u, v = math.random (), math.random ()
-        if math.random () < 0.5 then u = -u end
-        if math.random () < 0.5 then v = -v end
-        S = u^2 + v^2
-    until S < 1
-    local K = ((-2 * math.log (S)) / S) ^ 0.5
-    return u*K, v*K
-end
-
--- returns true if a is present in table (array) b
--- a == b[any]
--- @param a Element to check in values
--- @param b Table in form of array (indices 1..n with non-nil values)
--- @return true iff b[k] == a where k is some integer;
---         else false
-local function eqany(a,b)
-    for i = 1,#b do
-        if a == b[i] then
-            return true
-        end
-    end
-    return false
-end
-assert (eqany (3, {2,3,4}), "3 present")
-assert (not eqany (5, {2,3,4}), "5 absent")
-assert (not eqany (4, {[1]=3, [3]=4}), "sparse, interrupted array")
-assert (not eqany (2, {[1]=true, [2]=true, [3]=true}), "2 not in values")
-assert (not eqany (2, {["a"]=2}), "associative table")
+local eqany     = utils.eqany
+local marsaglia = utils.marsaglia
+local round     = utils.round
 
 -- wrapper to handle debug logging
 local function log_act (a)

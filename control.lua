@@ -11,32 +11,8 @@ local chunksize = 32
 
 local cycle_search, cycle_seed, cycle_grown, cycle_kill, cycle_decay, cycle_trees
 
-local tree_names = {
-    "tree-01",
-    "tree-02",
-    "tree-02-red",
-    "tree-03",
-    "tree-04",
-    "tree-05",
-    "tree-06",
-    "tree-06-brown",
-    "tree-07",
-    "tree-08",
-    "tree-08-brown",
-    "tree-08-red",
-    "tree-09",
-    "tree-09-brown",
-    "tree-09-red",
-}
-
-local dead_tree_names = {
-    "dead-tree",
-    "dry-tree",
-    "green-coral",
-    "dead-grey-trunk",
-    "dry-hairy-tree",
-    "dead-dry-hairy-tree",
-}
+local tree_names      = config.tree_names_live
+local dead_tree_names = config.tree_names_dead
 
 -- =================
 -- === UTILITIES ===
@@ -160,14 +136,6 @@ local function get_seeding_location (surface, tree)
         then
             return p
         end
-        --[[
-        if x ~= tree.position.x and y ~= tree.position.y then
-            p = surface.find_non_colliding_position (tree.name, {x,y}, 1, 1)
-            if p then
-                return p
-            end
-        end
-        --]]
     end
 end
 

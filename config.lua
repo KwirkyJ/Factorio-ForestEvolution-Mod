@@ -5,22 +5,19 @@ return {
    
     -- TODO: deprecate max_modified in favor of fractional count
     -- Maximim number of trees touched in a chunk
-    -- 0.25 = up to 1/4 of a chunk's trees modified
-    -- tree_chunk_population_fraction = 0.3,
+    -- 0.25 = touch up to 1/4 of a chunk's trees
+    tree_chunk_population_fraction = 0.25,
     
     -- How much area around the player to update
     -- Creates a record of chunks to update
-    tree_chunk_radius = 8,
+    tree_chunk_radius = 6,
 
     -- Show debug window
     enable_debug_window = true,
 
     -- How many attempts to make at finding an unobstructed position
     -- on which a seed might fall
-    seed_location_search_tries = 5,
-
-    -- Cap on number of trees (per chunk) modified per game tick
-    max_modified_per_tick = 256,
+    seed_location_search_tries = 6,
 
     -- probabilities of each occurrence on different tile types
     -- "default" serves two roles:
@@ -54,5 +51,32 @@ return {
 
     -- factor modifying tree behavior when tile has ore on it
     tree_tile_ore_modifiers = {mast = 1, spawn = 0.3, death = 1, decay = 0.6},
+    
+    tree_names_live = {
+        "tree-01",
+        "tree-02",
+        "tree-02-red",
+        "tree-03",
+        "tree-04",
+        "tree-05",
+        "tree-06",
+        "tree-06-brown",
+        "tree-07",
+        "tree-08",
+        "tree-08-brown",
+        "tree-08-red",
+        "tree-09",
+        "tree-09-brown",
+        "tree-09-red",
+    },
+
+    tree_names_dead = {
+        "dead-tree",
+        "dry-tree",
+        "green-coral",
+        "dead-grey-trunk",
+        "dry-hairy-tree",
+        "dead-dry-hairy-tree",
+    },
 }
 

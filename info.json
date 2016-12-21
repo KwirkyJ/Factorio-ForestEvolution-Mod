@@ -1,9 +1,9 @@
 {
-	"name": "NaturalTreeExpansion",
-	"version": "0.3.0",
-	"title": "Natural Tree Expansion",
+	"name": "ForestEvolution",
+	"version": "1.0.0",
+	"title": "Forest Evolution Mod",
 	"author": "KwirkyJ",
-	"description": "Aliens reproduce, why don't trees?",
+	"description": "Trees reproduce, die, and decompose as the game progresses. Different soils (dirt vs grass vs sand) support different populations.",
 	"homepage": "",
 	"factorio_version": "0.14",
 	"dependencies": ["base >= 0.14.21"]

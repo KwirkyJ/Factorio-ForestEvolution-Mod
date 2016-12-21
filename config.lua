@@ -21,8 +21,8 @@ return {
 
     -- probabilities of each occurrence on different tile types
     -- "default" serves two roles:
-    -- 1 - used in event that a tile name is not matched
-    -- 2 - default values which tile[name][property] overrides
+    -- * used in event that a tile name is not matched
+    -- * supplies values which tile[name][property] overrides
     -- mast  -> probability of seeding
     -- spawn -> probability of seed producing a tree
     -- death -> probability of tree dying and producing a carcass (dead tree)
@@ -30,7 +30,7 @@ return {
     -- ? if death > mast*spawn then population will probably die off
     -- ? if decay > death then number of dead trees will probably be low
     tree_tile_properties = {
-        ["default"] = {mast = 0.4, spawn = 0.8, death = 0.3, decay = 0.3},
+        ["default"] = {mast = 0.05, spawn = 0.35, death = 0.02, decay = 0.05},
         ["out-of-map"] = {spawn = 0},
         ["deepwater"] = {spawn = 0},
         ["deepwater-green"] = {spawn = 0},
@@ -40,43 +40,16 @@ return {
         ["concrete"] = {spawn = 0},
         ["hazard-concrete-left"] = {spawn = 0},
         ["hazard-concrete-right"] = {spawn = 0},
-        ["sand"] = {mast = 0.25, spawn = 0.2, death = 0.15, decay = 0.15},
-        ["sand-dark"] = {mast = 0.25, spawn = 0.4, death = 0.1, decay = 0.1},
-        ["dirt"] = {spawn = 0.8, death = 0.3, decay = 0.3},
-        ["dirt-dark"] = {spawn = 0.8, death = 0.3, decay = 0.3},
-        ["grass"] = {spawn = 0.67, death = 0.22, decay = 0.85},
-        ["grass-medium"] = {spawn = 0.67, death = 0.22, decay = 0.85},
-        ["grass-dry"] = {spawn = 0.67, death = 0.22, decay = 0.85},
+        ["sand"]      = {mast = 0.02, spawn = 0.2, death = 0.005, decay = 0.01},
+        ["sand-dark"] = {mast = 0.02, spawn = 0.4, death = 0.01},
+        ["dirt"]      = {spawn = 0.8, death = 0.016, decay = 0.1},
+        ["dirt-dark"] = {spawn = 0.8, death = 0.016, decay = 0.16},
+        ["grass"]        = {spawn=0.64, decay=0.25},
+        ["grass-medium"] = {spawn=0.64, decay=0.22},
+        ["grass-dry"]    = {spawn=0.52, decay=0.12},
     },
 
     -- factor modifying tree behavior when tile has ore on it
-    tree_tile_ore_modifiers = {mast = 1, spawn = 0.3, death = 1, decay = 0.6},
-    
-    tree_names_live = {
-        "tree-01",
-        "tree-02",
-        "tree-02-red",
-        "tree-03",
-        "tree-04",
-        "tree-05",
-        "tree-06",
-        "tree-06-brown",
-        "tree-07",
-        "tree-08",
-        "tree-08-brown",
-        "tree-08-red",
-        "tree-09",
-        "tree-09-brown",
-        "tree-09-red",
-    },
-
-    tree_names_dead = {
-        "dead-tree",
-        "dry-tree",
-        "green-coral",
-        "dead-grey-trunk",
-        "dry-hairy-tree",
-        "dead-dry-hairy-tree",
-    },
+    tree_tile_ore_modifiers = {mast = 1, spawn = 0.3, death = 1, decay = 0.7},
 }
 

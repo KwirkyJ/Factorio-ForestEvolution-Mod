@@ -2,15 +2,15 @@ return {
     -- Number of ticks between updating trees
     -- 1 = every tick; 60 = once every sixty ticks
     tree_update_interval = 1,
-   
+
     -- TODO: deprecate max_modified in favor of fractional count
     -- Maximim number of trees touched in a chunk
     -- 0.25 = touch up to 1/4 of a chunk's trees
     tree_population_update_fraction = 0.25,
-    
+
     -- Size, in tiles per side, of update regions
     locale_size = 32,
-    
+
     -- Regions around the player to add to locale cache
     locale_cache_radius = 6,
 
@@ -53,5 +53,32 @@ return {
 
     -- factor modifying tree behavior when tile has ore on it
     tree_tile_ore_modifiers = {mast = 1, spawn = 0.3, death = 1, decay = 0.7},
+
+    tree_names_live = {
+        "tree-01",
+        "tree-02",
+        "tree-02-red",
+        "tree-03",
+        "tree-04",
+        "tree-05",
+        "tree-06",
+        "tree-06-brown",
+        "tree-07",
+        "tree-08",
+        "tree-08-brown",
+        "tree-08-red",
+        "tree-09",
+        "tree-09-brown",
+        "tree-09-red",
+    },
+
+    tree_names_dead = {
+        "dead-tree",
+        "dry-tree",
+        "green-coral",
+        "dead-grey-trunk",
+        "dry-hairy-tree",
+        "dead-dry-hairy-tree",
+    },
 }
 

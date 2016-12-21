@@ -15,6 +15,8 @@ local tree_names_dead = config.tree_names_dead
 local locale_size = config.locale_size
 local locale_cache_radius = config.locale_cache_radius
 
+local properties_cache = {[false] = {}, [true] = {}}
+
 -- =================
 -- === UTILITIES ===
 -- =================
@@ -64,20 +66,26 @@ local function get_tile_properties (surface, tile)
     if not tile.valid then 
         return nil 
     end
-    local props = {}
+    local ore_on_tile = ore_at_position (surface, tile.position)
+    local props = properties_cache[ore_on_tile][tile.name]
+    if props then
+        return props
+    end
+    -- fall-throughs iff cache[ore][name] == nil
+    props = {}
     local tileref = config.tree_tile_properties[tile.name]
     if tileref then
         for k,v in pairs (tileref) do
             props[k] = v
         end
     end
-    local ore_on_tile = ore_at_position (surface, tile.position)
     for k,v in pairs (config.tree_tile_properties.default) do
         props[k] = props[k] or v
         if ore_on_tile then
             props[k] = props[k] * config.tree_tile_ore_modifiers[k]
         end
     end
+    properties_cache[ore_on_tile][tile.name] = props
     return props
 end
 

@@ -6,11 +6,13 @@ return {
     -- TODO: deprecate max_modified in favor of fractional count
     -- Maximim number of trees touched in a chunk
     -- 0.25 = touch up to 1/4 of a chunk's trees
-    tree_chunk_population_fraction = 0.25,
+    tree_population_update_fraction = 0.25,
     
-    -- How much area around the player to update
-    -- Creates a record of chunks to update
-    tree_chunk_radius = 6,
+    -- Size, in tiles per side, of update regions
+    locale_size = 32,
+    
+    -- Regions around the player to add to locale cache
+    locale_cache_radius = 6,
 
     -- Show debug window
     enable_debug_window = true,

@@ -1,17 +1,16 @@
 ---Object-like structure for the storing and and random-access of
 ---"Chunk" positions.
 
-local locales_has, locales_get_count
-local locales_add_chunk, locales_get_random_chunk
+local locales_has, locales_get_count, locales_add, locales_get_random
 
 local function locales_tostr (L)
     local t = {}
     for i=1, L._n do
-        local chunk = L._flat[i]
+        local loc = L._flat[i]
         if i ==1 then
-            t[i] = "("..chunk.x..", "..chunk.y..")"
+            t[i] = "("..loc.x..", "..loc.y..")"
         else
-            t[i] = ", ("..chunk.x..", "..chunk.y..")"
+            t[i] = ", ("..loc.x..", "..loc.y..")"
         end
     end
     return table.concat (t)
@@ -22,8 +21,8 @@ end
 local function init_locales ()
     local L = {_n = 0, 
                _flat = {},
-               add_chunk = locales_add_chunk,
-               get_random_chunk = locales_get_random_chunk,
+               add = locales_add,
+               get_random = locales_get_random,
                get_count = locales_get_count,
                has = locales_has,
               }
@@ -65,10 +64,10 @@ local function sort_chunks (T)
 end
 --]]
 
----Add a Chunk to the structure
----@param chunk Chunk ({x=0, y=32}, e.g.)
-locales_add_chunk = function (self, chunk)
-    local row, x, y = self[chunk.x], chunk.x, chunk.y
+---Add a location to the structure
+---@param loc e.g., {x=0, y=32}
+locales_add = function (self, loc)
+    local row, x, y = self[loc.x], loc.x, loc.y
     if row then
         row[y] = true
     else
@@ -79,30 +78,30 @@ locales_add_chunk = function (self, chunk)
 --    self._flat = sort_chunks (self._flat)
 end
 
----Get count of chunks in structure
+---Get count of localities in structure
 ---@return number (integer)
 locales_get_count = function (self)
     return self._n
 end
 
----Get a random Chunk in the structure
+---Get a random locale in the structure
 ---@return nil iff structure is empty; 
----        else a Chunk
-locales_get_random_chunk = function (self)
+---        else a table {x=number, y=number}
+locales_get_random = function (self)
     if self._n > 0 then
         return self._flat[math.random (self._n)]
     end
 end
 
----Check whether structure has (contains) a Chunk
----@param chunk Chunk {x=0, y=32}, e.g.
+---Check whether structure has (contains) a locale
+---@param loc e.g., {x=0, y=32}
 ---@return nil iff not in structure;
 ---        else true
-locales_has = function (self, c)
-    if not self[c.x] then 
+locales_has = function (self, loc)
+    if not self[loc.x] then 
         return nil 
     else
-        return self[c.x][c.y]
+        return self[loc.x][loc.y]
     end
 end
 

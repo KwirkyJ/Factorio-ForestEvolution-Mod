@@ -13,9 +13,12 @@ return {
 
     -- Regions around the player to add to locale cache
     locale_cache_radius = 6,
+    
+    -- Soft limit on the number of trees a locale may contain
+    tree_max_locale_population = 1200,
 
     -- Show debug window
-    enable_debug_window = true,
+    enable_debug_window = false,
 
     -- How many attempts to make at finding an unobstructed position
     -- on which a seed might fall

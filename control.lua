@@ -12,8 +12,9 @@ local cycle_search, cycle_seed, cycle_grown, cycle_kill, cycle_decay, cycle_tree
 local tree_names_live = config.tree_names_live
 local tree_names_dead = config.tree_names_dead
 
-local locale_size = config.locale_size
+local locale_size         = config.locale_size
 local locale_cache_radius = config.locale_cache_radius
+local locale_maxpop       = config.tree_max_locale_population
 
 local properties_cache = {[false] = {}, [true] = {}}
 
@@ -71,7 +72,9 @@ local function get_tile_properties (surface, tile)
     if props then
         return props
     end
-    -- fall-throughs iff cache[ore][name] == nil
+    -- 
+    -- iff cache[ore][name] == nil
+    --
     props = {}
     local tileref = config.tree_tile_properties[tile.name]
     if tileref then
@@ -193,7 +196,9 @@ local function update_trees (surface, trees)
         local t_props = get_tile_properties_position (surface, tree.position)
         if eqany (tree.name, tree_names_dead) then
             try_decompose (t_props.decay, tree, trees, i)
-        elseif math.random () < t_props.mast then
+        elseif #trees < locale_maxpop and
+               math.random () < t_props.mast 
+        then
             seed_tree (surface, tree)
         elseif math.random () < t_props.death then
             kill_tree (surface, tree, trees, i)
